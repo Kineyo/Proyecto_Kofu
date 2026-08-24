@@ -1,192 +1,209 @@
-# Kofu v1.0 (Latest)
+# Kofu C++
 
-**Asistente autonomo multiplataforma 100% offline** de creacion de Documentos '.docx' y '.potx' usando diversas plantillas sin necesidad de tener Office u LibreOffice **usando el motor ollama para el procesamiento de ordenes e insercion de contexto hibrido.** 
+**Rama experimental de Kofu escrita en C++ (`.cpp` y `.hpp`).**
 
-## Requisitos del sistema
+Esta rama es una reimplementacion experimental del backend de Kofu. No debe
+considerarse una version estable ni un reemplazo completo de la version
+Python. El programa compila un ejecutable llamado `kofu`, inicia un servidor
+HTTP local y se comunica con Ollama mediante su API REST.
 
-- **Sistema Operativo**: Windows 8.1/10/11, Linux, o macOS en sus versiones x64. 
-- **Python**: Versión 3.10 o superior (recomendado 3.10 o 3.11).
-- **Ofimática (Office / LibreOffice)**:
-  - **Para generar documentos**: NO es necesario tener instalado Microsoft Office ni LibreOffice. Kofu genera nativamente los archivos `.docx` y `.pptx` de manera independiente usando bibliotecas de Python (`python-docx` y `python-pptx`).
-  - **Para abrir y visualizar los documentos**: Necesitarás **Microsoft Office** (Word/PowerPoint), **LibreOffice** (Writer/Impress), u otra suite ofimática compatible con los formatos de OpenXML.
-- **Procesamiento de Audio / MarkItDown**: Si deseas procesar archivos de audio (MP3, WAV, etc.), es necesario tener instalado **[FFmpeg](https://ffmpeg.org/)** en tu sistema y agregado al PATH (requerido por `pydub`).
-- **Hardware (Para uso local)**: Mínimo 8 GB de RAM (16 GB o más recomendados si utilizas modelos locales de Ollama). Una GPU dedicada (NVIDIA/AMD) acelerará enormemente el procesamiento local, aunque puede funcionar en CPU (más lento).
-- **Conexión a Internet**: Necesaria para la instalación inicial, y requerida para el modo Online (investigación web o procesamiento externo de IA).
+## Estado de esta rama
 
-## Instalación
+- Backend experimental en C++17/C++20.
+- Servidor HTTP basado en `cpp-httplib`.
+- Cliente para Ollama y seleccion dinamica de modelos por tipo de tarea.
+- Motor de razonamiento local basado en reglas, con enriquecimiento mediante
+  Ollama.
+- Generacion nativa de documentos Office Open XML: `.docx` y `.pptx`.
+- Uso de plantillas `.dotx` y `.potx`, estilos, temas y copias de respaldo.
+- Sanitizacion de entradas y correccion de errores frecuentes en espanol e
+  ingles.
+- Investigacion web mediante Google Custom Search, DuckDuckGo o Bing, segun
+  la configuracion disponible.
+- **MarkItDown aun no esta portado a C++**. El digest y el procesamiento
+  automatico de archivos no estan disponibles en esta version.
+- La interfaz estatica se sirve desde `web/` si ese directorio existe; el
+  arbol actual de esta rama no incluye ese directorio.
 
-### Python
+## Funcionalidades implementadas
 
-1. Instala Python desde [python.org](https://www.python.org/)
-2. Abre una terminal en la carpeta del proyecto
-3. Ejecuta: `pip install -r requirements.txt`
+El ejecutable integra los siguientes modulos:
 
+- `config`: carga `.env`, variables de entorno, rutas del proyecto y puertos.
+- `ollama_client`: consulta modelos y genera o razona con Ollama.
+- `model_router`: selecciona el modelo adecuado para razonamiento,
+  investigacion, documentos o presentaciones.
+- `reasoning`: reglas locales, cadena de razonamiento y respuesta con Ollama.
+- `sanitizer`: limpieza de entradas, nombres de archivo y correccion
+  ortografica basica.
+- `knowledge_base`: consejos estaticos para Word y PowerPoint.
+- `web_research`: busqueda y resumen de informacion web.
+- `docx_generator`: crea documentos Word desde cero o a partir de `.dotx`.
+- `pptx_generator`: crea presentaciones PowerPoint desde cero o a partir de
+  `.potx`.
+- `assistant`: orquesta las tareas de chat, investigacion y generacion.
+- `http_server`: expone la API y sirve los archivos estaticos del frontend.
 
-1. Instala ollama en **[Ollama](https://ollama.com/)**
-#### Descarga los 3 modelos recomendados.
+Los documentos generados se guardan en `output/` y sus copias de respaldo en
+`Archivos/`. Esas carpetas se crean automaticamente al iniciar el programa.
 
-  - Para conversar:
-    `ollama pull qwen2.5:0.5b-instruct` o `ollama pull smollm2:360m`
-  - Para generar documentos:
-    `ollama pull gemma` o `ollama pull llama3`
+## Requisitos
 
-## Uso rápido
+- CMake 3.20 o superior.
+- Compilador compatible con C++17; CMake usa C++20 cuando el compilador lo
+  soporta.
+- `pkg-config`.
+- `libzip` y sus archivos de desarrollo.
+- Ollama instalado y ejecutandose en `http://localhost:11434` por defecto.
+- Conexion a Internet solo para descargar dependencias de CMake, consultar
+  servicios de investigacion web o descargar modelos de Ollama.
 
-1. **Inicia el servidor**: Ejecuta el archivo de arranque correspondiente (ej. `run.bat`, `run.sh`, `run.ps1`, o `run_macos.command`) En sistemas linux 'run.sh' [Solo se ha testeado en versiones basadas en ubuntu 25]
-2. **Descarga automatica**: Al arrancar el servidor por primera vez creara un entorno virtual e instalara las dependencias necesarias, esto puede tardar un poco la primera vez.
-3. **Comienza a usar Kofu**: Al terminar la instalacion se abrira automaticamente la interfaz de Kofu, si no se abre entonces puedes ir a 'localhost:8000'
+No se necesita Microsoft Office ni LibreOffice para generar los archivos.
+Para abrirlos se necesita una aplicacion compatible con `.docx` o `.pptx`, como
+Microsoft Office o LibreOffice.
 
-## Funcionalidades principales
+### Dependencias descargadas por CMake
 
-- **Chat interactivo**: Habla con Kofu
-- **Crear documentos Word**: Genera documentos automáticos
-- **Crear presentaciones PowerPoint**: Genera presentaciones automáticas
-- **Modo Local**: Usa Kofu sin conexión a internet
-- **Modo Online**: Investigación web y funciones avanzadas
-- **Plantillas personalizadas**: Usa tus propias plantillas de Office o las integradas por defecto
-- **Carga de archivos**: Procesa documentos, imágenes, audio y más usando MarkItDown [Experimental]
-- **Razonamiento offline avanzado**: Integración con el motor Ollama para usar modelos de forma local
+Durante la configuracion, `FetchContent` descarga estas versiones:
 
-## AI Status
+- `cpp-httplib` v0.18.3
+- `nlohmann/json` v3.11.3
+- `pugixml` v1.14
 
-- La IA en esta version v1.0 estable y lista para usar.
-- El backend usa el motor Ollama para procesar la informacion y peticiones.
-- No se ha habillitado la version 100% local debido a conflictos con 'markitdown' y subdependencias
-- Kofu actua de manera independiente sin requerir usar office ni aplicaciones externas
+## Compilacion
 
-## Stack Tecnológico
+Desde la raiz del repositorio:
 
-### MarkItDown
+```bash
+sudo apt install cmake g++ pkg-config libzip-dev
+cmake -S kofu-cpp -B kofu-cpp/build -DCMAKE_BUILD_TYPE=Release
+cmake --build kofu-cpp/build --parallel
+```
 
-Kofu utiliza **MarkItDown** como una capa de conversión y extracción de contenido.
+Para una compilacion de depuracion con AddressSanitizer y UndefinedBehaviorSanitizer:
 
-- Qué es: Repositorio de Microsoft para OCR y conversión de archivos a Markdown.
-- Uso en Kofu: Procesa entradas como PDF, DOCX, PPTX, imágenes y audio para su integración en el flujo de generación.
-- Formatos soportados:
-  - PDF (.pdf)
-  - Word (.docx)
-  - PowerPoint (.pptx)
-  - Excel (.xlsx, .xls)
-  - Imágenes (.jpg, .jpeg, .png, .gif, .bmp, .tiff)
-  - Audio (.wav, .mp3, .m4a, .ogg, .flac)
-  - HTML, Markdown, texto plano, CSV, JSON, XML
-  - EPUB, ZIP, Outlook (.msg), Jupyter Notebooks (.ipynb)
-- Cómo se usa en Kofu:
-  - Convertir archivos cargados a texto/Markdown para su análisis por el motor de IA.
-  - Extraer contenido útil de documentos y presentaciones antes de generar resultados.
-- Seguridad:
-  - El procesamiento se realiza con restricciones del proceso actual.
-  - Kofu sanitiza las entradas antes de su uso para reducir riesgos.
-- Enlace: https://github.com/microsoft/markitdown
+```bash
+cmake -S kofu-cpp -B kofu-cpp/build-debug -DCMAKE_BUILD_TYPE=Debug
+cmake --build kofu-cpp/build-debug --parallel
+```
 
-### Ollama (Razonamiento offline)
+El binario resultante es `kofu-cpp/build/kofu` o
+`kofu-cpp/build-debug/kofu`.
 
-Kofu integra **Ollama** para razonamiento local y sanitización de código.
+## Configuracion
 
-- Versión actual (1.0): Usa varios modelos de manera dinamica
-- Uso: razonamiento, sanitización de código y procesamiento local sin conexión.
-- Cómo configurar Ollama:
-  1. Descarga e instala Ollama desde https://ollama.ai/
-  2. Descarga un modelo compatible o los recomendados.
-  4. Inicia Kofu con tu script de arranque (ej. `run.bat`).
+El programa busca un archivo `.env` en la raiz del proyecto. Las variables de
+entorno tienen prioridad sobre los valores del archivo.
 
-- Licencias de terceros: los usuarios deben respetar los términos de licencia de Ollama.
+Ejemplo:
 
-### Configuración avanzada
-MarkItDown está integrado directamente en el proyecto en el archivo `backend/src/markitdown.py`.
+```dotenv
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL_PRIMARY=gemma4:latest
+OLLAMA_MODEL_FALLBACK=llama3:latest
+LLM_MODEL_NAME=gemma4:latest
+USE_LOCAL_LLM=true
+GOOGLE_API_KEY=
+GOOGLE_CX=
+```
 
-## Integración con MarkItDown
+Variables reconocidas:
 
-Kofu usa **MarkItDown** para convertir diversos tipos de archivos a Markdown/texto para su procesamiento por modelos de lenguaje.
+| Variable | Uso | Valor predeterminado |
+| --- | --- | --- |
+| `OLLAMA_BASE_URL` | URL del servidor Ollama | `http://localhost:11434` |
+| `OLLAMA_MODEL` | Modelo principal | sin definir |
+| `OLLAMA_MODEL_PRIMARY` | Modelo principal alternativo | sin definir |
+| `OLLAMA_MODEL_FALLBACK` | Modelo de respaldo | sin definir |
+| `LLM_MODEL_NAME` | Modelo por defecto del asistente | primer modelo disponible |
+| `USE_LOCAL_LLM` | Activa el uso de Ollama | `true` |
+| `GOOGLE_API_KEY` | Clave de Google Custom Search | vacia |
+| `GOOGLE_CX` | Identificador del buscador de Google | vacio |
 
-### Funcionalidades habilitadas por MarkItDown
+Si no se encuentran puertos libres en `8000`, `8080`, `3000` o `5000`, el
+servidor solicita un puerto aleatorio al sistema operativo.
 
-- **Formatos soportados:**
-  - PDF (.pdf)
-  - Documentos de Word (.docx)
-  - Presentaciones de PowerPoint (.pptx)
-  - Hojas de cálculo Excel (.xlsx, .xls)
-  - Imágenes (.jpg, .jpeg, .png, .gif, .bmp, .tiff)
-  - Audio (.wav, .mp3, .m4a, .ogg, .flac)
-  - HTML, texto plano, Markdown, CSV, JSON, XML
-  - EPUB, ZIP, Outlook (.msg), Jupyter Notebooks (.ipynb)
+## Ollama
 
-- **Uso:**
-  - Arrastra y suelta un archivo en la interfaz de Kofu.
-  - Selecciona un documento o presentación para generar.
-  - Kofu extraerá el contenido del archivo y podrás usarlo para crear nuevos documentos o presentaciones.
+Inicia Ollama y descarga al menos un modelo compatible con tu equipo:
 
-- **Seguridad:**
-  - MarkItDown procesa los archivos con las restricciones del proceso actual.
-  - Kofu sanitiza todas las entradas antes de procesarlas para garantizar seguridad.
+```bash
+ollama serve
+ollama pull gemma4:latest
+ollama pull llama3:latest
+```
 
-### Cómo configurar Ollama:
-1. Descarga e instala Ollama desde [ollama.com/download](https://ollama.com/download)
-2. Descarga un modelo (recomendado: `ollama pull llama3`)
-4. Inicia Kofu con tu script de arranque (ej. `run.bat`).
+Los nombres de modelo se pueden cambiar mediante las variables de entorno
+anteriores. El endpoint `/health` informa si Ollama esta disponible y que
+modelos puede consultar.
 
-## Primeros pasos
+## Ejecucion
 
-1. Selecciona el tipo de documento (Word o PowerPoint)
-2. Selecciona una plantilla
-  - (Opcional) Carga un archivo para usar su contenido
-3. Escribe tu solicitud y envía
-4. Kofu creará el documento o presentación automáticamente
+```bash
+./kofu-cpp/build/kofu
+```
 
-## Licencia y Términos de Uso
+El servidor escucha en todas las interfaces (`0.0.0.0`) y selecciona el primer
+puerto disponible de su lista de preferencia. La raiz `/` redirige a
+`/web/index.html` cuando el frontend esta instalado.
 
-Kofu es un proyecto de código abierto (Open Source) sujeto a la licencia contenida en el archivo `LICENSE`.
+## API HTTP
 
-Resumen rápido:
+Rutas disponibles en el servidor C++:
 
-- **Inspiración y aprendizaje**: Eres libre de usar el código para aprender y usarlo como referencia.
-- **No plagio**: Queda prohibido apropiarse del código, copiarlo y afirmar que es tuyo (no lo robes).
-- **Actualizaciones**: El proyecto recibirá parches y modificaciones de forma aleatoria, sin un calendario regular o periódico.
-- **Terceros**: Kofu integra MarkItDown (Microsoft) y el motor Ollama, ambos con sus respectivas licencias MIT.
+| Metodo | Ruta | Funcion |
+| --- | --- | --- |
+| `GET` | `/health` | Estado del servidor y de Ollama |
+| `GET` | `/ollama/models` | Modelos instalados en Ollama |
+| `GET` | `/templates` | Plantillas Word y PowerPoint disponibles |
+| `POST` | `/chat` | Chat y razonamiento |
+| `POST` | `/research` | Investigacion y resumen web |
+| `POST` | `/office/word` | Genera un documento `.docx` |
+| `POST` | `/office/word/download` | Descarga un documento Word |
+| `POST` | `/office/powerpoint` | Genera una presentacion `.pptx` |
+| `POST` | `/office/powerpoint/download` | Descarga una presentacion |
+| `POST` | `/office/tips` | Consejos para Word o PowerPoint |
+| `POST` | `/text/correct` | Corrige texto sanitizado |
+| `POST` | `/files/upload` | Guarda una carga de archivo |
+| `POST` | `/files/digest` | Devuelve que la funcion no esta portada |
 
-Para información completa, consulta el archivo `LICENSE`.
+Las rutas esperan y devuelven JSON, salvo las rutas de descarga. La API
+habilita CORS para facilitar el uso desde un frontend local.
 
-### Roadmap por versión
+## Plantillas incluidas
 
-- **0.3 Estable**
-  - Generacion de documentos simples forzando conexiones estables por consola
+- PowerPoint: `templates/powerpoint/` con plantillas `.potx`.
+- Word: `templates/word/` con plantillas `.dotx`.
 
-- **0.5 Estable**
-  - integracion de Web Reasearch
+Los archivos temporales que empiezan por `~$` se ignoran al listar plantillas.
 
-- **0.6 Estable**
-  - Agregar modulos de sanitizacion
-  - Agregar modulos compatibles para api
-  - Mejora de Frontend
+## Empaquetado
 
-- **0.7 Beta**
-  - Versión actual que usa Ollama con Gemma 4 para razonamiento y sanitización.
-  - La IA no es autónoma en beta y puede fallar por errores de direcciones.
-  - Incluye MarkItDown para OCR y conversión de archivos.
-  - Disponible para uso personal, educativo (con atribución) y comercial restringido.
+El proyecto incluye configuracion de CPack para generar paquetes `DEB` y
+`TGZ` en Linux, `NSIS` y `ZIP` en Windows, y `DragNDrop` y `TGZ` en macOS:
 
-- **0.8 Estable**
-  - Resolucion de conflictos Cors
-  - Primer resolucion de problemas complejos.
-  - Solucion de creacion de archivos
-  - Solucion con archivos Markitdown crudos
+```bash
+cd kofu-cpp/build
+cpack
+```
 
-- **0.9 Beta**
-  - Comunicacion estable
-  - Uso de Uvicorn
-  - Separacion del proyecto a LarIA(0.5)
-  - Creacion de plantillas
+Tambien se incluye la entrada de escritorio Linux en
+`kofu-cpp/packaging/kofu.desktop`.
 
-- **1.0 Stable** _(Latest)_
-  - Primera versión estable del proyecto.
-  - Versión autónoma con capacidad estable.
-  - Primer version Funcional
-  - Independencia de Office
-  - Uso de plantillas
-  - Integracion de contexto inyectado
-  - Uso de diversos motores de razonamiento de forma dinamica
+## Limitaciones conocidas
 
+- Esta rama es experimental y puede contener incompatibilidades con el
+  backend Python original.
+- No hay pruebas automatizadas ni frontend C++ incluido en el arbol mostrado.
+- MarkItDown no esta disponible: `/files/digest` no procesa PDF, DOCX, PPTX,
+  imagenes ni audio.
+- Google Custom Search necesita `GOOGLE_API_KEY` y `GOOGLE_CX`; si no estan
+  configuradas, el codigo intenta usar buscadores alternativos sujetos a su
+  disponibilidad y a la red.
+- El servicio debe tratarse como local de confianza: escucha en `0.0.0.0` y
+  las cabeceras CORS permiten cualquier origen.
 
-### Cómo contribuir
+## Licencia
 
-- Sigue los normamientos de github y no te apropies ni robes el codigo
+Consulta [LICENSE](LICENSE) para los terminos del proyecto y las licencias de
+las dependencias de terceros.
