@@ -1,7 +1,7 @@
 import os
 from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException, UploadFile, File
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from fastapi.responses import FileResponse
 
 from assistant import AIAssistant
@@ -68,8 +68,8 @@ def get_templates():
 def chat(req: ChatRequest):
     try:
         response, steps = (
-            assistant.direct_reason(req.message, modo=req.modo, model=req.model) if req.direct
-            else assistant.process_request(req.message, modo=req.modo, model=req.model)
+            assistant.direct_reason(req.message, modo=req.modo, model=req.model, api_key=req.api_key) if req.direct
+            else assistant.process_request(req.message, modo=req.modo, model=req.model, api_key=req.api_key)
         )
         return {
             "response": response,
@@ -86,7 +86,7 @@ def chat(req: ChatRequest):
 @router.post("/research")
 def research(req: TopicRequest):
     try:
-        return {"summary": assistant.research_topic(req.topic, modo=req.modo, model=req.model)}
+        return {"summary": assistant.research_topic(req.topic, modo=req.modo, model=req.model, api_key=req.api_key)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -102,6 +102,7 @@ def create_powerpoint(req: PresentationRequest):
             filename=req.filename,
             template=req.template,
             model=req.model,
+            api_key=req.api_key,
         )
         backup_name = os.path.basename(result.get("backup_path", "")) if result.get("backup_path") else None
         return {
@@ -127,6 +128,7 @@ def download_powerpoint(req: PresentationRequest):
             filename=req.filename,
             template=req.template,
             model=req.model,
+            api_key=req.api_key,
         )
         file_path = result["file_path"]
         return FileResponse(
@@ -153,6 +155,7 @@ def create_word(req: DocumentRequest):
             filename=req.filename,
             template=req.template,
             model=req.model,
+            api_key=req.api_key,
         )
         backup_name = os.path.basename(result.get("backup_path", "")) if result.get("backup_path") else None
         return {
@@ -178,6 +181,7 @@ def download_word(req: DocumentRequest):
             filename=req.filename,
             template=req.template,
             model=req.model,
+            api_key=req.api_key,
         )
         file_path = result["file_path"]
         return FileResponse(
@@ -203,7 +207,9 @@ def digest_file(req: DigestRequest):
     if not assistant.file_processor.available:
         raise HTTPException(status_code=503, detail="MarkItDown no está instalado. Ejecuta: pip install markitdown")
     try:
-        resultado = assistant.digest_file(req.file_path, req.output_path, req.instrucciones, model=req.model)
+        if req.vision_model:
+            assistant.file_processor.reinit_with_model(req.vision_model)
+        resultado = assistant.digest_file(req.file_path, req.output_path, req.instrucciones, model=req.model, api_key=getattr(req, 'api_key', None))
     except NoModelAvailableError:
         raise HTTPException(status_code=NO_MODEL_ERROR_CODE, detail=NO_MODEL_ERROR_MESSAGE)
     if not resultado.get("success"):
@@ -219,7 +225,11 @@ def correct_text(req: CorrectRequest):
     return {"original": req.text, "sanitizado": sanitizado, "corregido": corregido}
 
 @router.post("/files/upload")
-async def upload_file(file: UploadFile = File(...)):
+async def upload_file(
+    file: UploadFile = File(...),
+    api_key: Optional[str] = Form(None),
+    vision_model: Optional[str] = Form(None)
+):
     # Guardar en Archivos temporalmente
     os.makedirs(ARCHIVOS_DIR, exist_ok=True)
     file_path = os.path.join(ARCHIVOS_DIR, file.filename)
@@ -231,6 +241,9 @@ async def upload_file(file: UploadFile = File(...)):
         if not assistant.file_processor.available:
             raise HTTPException(status_code=503, detail="MarkItDown no está instalado. Ejecuta: pip install markitdown")
         
+        if vision_model:
+            assistant.file_processor.reinit_with_model(vision_model)
+            
         result = assistant.file_processor.process_local_file(file_path)
         if not result.get("success"):
             raise HTTPException(status_code=422, detail=result.get("error", "No se pudo procesar el archivo."))

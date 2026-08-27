@@ -121,6 +121,9 @@ class OfficeAgent:
 
         _ensure_dirs()
         temp_file = None
+        if not template_path:
+            from paths import TEMPLATES_DIR
+            template_path = os.path.join(TEMPLATES_DIR, "powerpoint", "Madison Azul.potx")
         if template_path and os.path.exists(template_path):
             path = template_path
             if path.endswith(".potx"):
@@ -178,6 +181,9 @@ class OfficeAgent:
 
         _ensure_dirs()
         temp_file = None
+        if not template_path:
+            from paths import TEMPLATES_DIR
+            template_path = os.path.join(TEMPLATES_DIR, "word", "Proyecto.dotx")
         if template_path and os.path.exists(template_path):
             path = template_path
             if path.endswith(".dotx"):
@@ -195,7 +201,11 @@ class OfficeAgent:
             ctype = content["type"]
             if ctype == "heading":
                 level = content.get("level", 1)
-                heading = document.add_heading(content["text"], level=level)
+                try:
+                    heading = document.add_heading(content["text"], level=level)
+                except Exception:
+                    heading = document.add_paragraph(content["text"])
+                    heading.runs[0].font.bold = True
                 for run in heading.runs:
                     run.font.name = doc_style["heading_font"]
                     run.font.color.rgb = RGBColor(*doc_style["heading_color"])
@@ -228,7 +238,11 @@ class OfficeAgent:
                         level = len(block) - len(block.lstrip("#"))
                         level = min(level, 9)
                         clean_text = block.lstrip("#").strip()
-                        heading = document.add_heading(clean_text, level=level)
+                        try:
+                            heading = document.add_heading(clean_text, level=level)
+                        except Exception:
+                            heading = document.add_paragraph(clean_text)
+                            if heading.runs: heading.runs[0].font.bold = True
                         for run in heading.runs:
                             run.font.name = doc_style["heading_font"]
                             run.font.color.rgb = RGBColor(*doc_style["heading_color"])

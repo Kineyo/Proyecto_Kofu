@@ -119,17 +119,30 @@ class ReasoningEngine:
         return "\n".join(str(s) for s in self.thinking_steps)
 
 
-def query_external_llm_fallback(prompt: str) -> Optional[str]:
-    """Fallback opcional a un LLM en la nube (solo si OPENAI_API_KEY está configurada).
+def query_external_llm_fallback(prompt: str, api_key: Optional[str] = None) -> Optional[str]:
+    """Fallback opcional a un LLM en la nube (solo si OPENAI_API_KEY está configurada o se provee api_key de Gemini).
     Solo se invoca en modo 'online', y solo si Ollama falló por una razón
     transitoria (no cuando falta el modelo, ver HybridReasoningEngine)."""
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
+    if api_key:
+        try:
+            resp = requests.post(
+                f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}",
+                headers={"Content-Type": "application/json"},
+                json={"contents": [{"parts": [{"text": prompt}]}]},
+                timeout=30,
+            )
+            resp.raise_for_status()
+            return resp.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
+        except Exception:
+            pass
+
+    env_api_key = os.getenv("OPENAI_API_KEY")
+    if not env_api_key:
         return None
     try:
         resp = requests.post(
             "https://api.openai.com/v1/chat/completions",
-            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            headers={"Authorization": f"Bearer {env_api_key}", "Content-Type": "application/json"},
             json={"model": "gpt-3.5-turbo", "messages": [{"role": "user", "content": prompt}],
                   "max_tokens": 500, "temperature": 0.7},
             timeout=30,
@@ -201,7 +214,8 @@ class HybridReasoningEngine(ReasoningEngine):
         threading.Thread(target=tarea, daemon=True).start()
 
     def _respuesta_con_ollama(self, prompt: str, system_prompt: Optional[str] = None,
-                               allow_external: bool = False, model: Optional[str] = None) -> Optional[str]:
+                               allow_external: bool = False, model: Optional[str] = None,
+                               api_key: Optional[str] = None) -> Optional[str]:
         if self.ollama_engine:
             try:
                 contexto_previo = self._leer_contexto()
@@ -212,12 +226,13 @@ class HybridReasoningEngine(ReasoningEngine):
                 return respuesta
             except NoModelAvailableError:
                 raise  # caso explícito: no se enmascara, sube hasta la ruta HTTP como 418
-            except RuntimeError:
+            except RuntimeError as e:
+                print("ERROR OLLAMA:", repr(e))
                 pass  # error transitorio (timeout, conexión): se intenta el fallback normal
-        return query_external_llm_fallback(prompt) if allow_external else None
+        return query_external_llm_fallback(prompt, api_key=api_key) if allow_external else None
 
     def direct_reason(self, user_input: str, allow_external: bool = False,
-                       model: Optional[str] = None) -> Tuple[str, List[ReasoningStep]]:
+                       model: Optional[str] = None, api_key: Optional[str] = None) -> Tuple[str, List[ReasoningStep]]:
         self.clear_facts()
         self.add_fact(user_input)
         self.thinking_steps.append(ReasoningStep(1, "Acceso directo sin sanitización", user_input))
@@ -227,6 +242,7 @@ class HybridReasoningEngine(ReasoningEngine):
             system_prompt="Eres un asistente de razonamiento directo. Responde de forma técnica y concisa.",
             allow_external=allow_external,
             model=model,
+            api_key=api_key,
         )
         if respuesta:
             self.thinking_steps.append(ReasoningStep(2, "Respuesta generada con IA"))
@@ -236,10 +252,10 @@ class HybridReasoningEngine(ReasoningEngine):
         return user_input, self.thinking_steps
 
     def reason(self, user_input: str, allow_external: bool = False,
-               model: Optional[str] = None) -> Tuple[str, List[ReasoningStep]]:
+               model: Optional[str] = None, api_key: Optional[str] = None) -> Tuple[str, List[ReasoningStep]]:
         respuesta_reglas, pasos = super().reason(user_input)
 
-        respuesta_ia = self._respuesta_con_ollama(user_input, allow_external=allow_external, model=model)
+        respuesta_ia = self._respuesta_con_ollama(user_input, allow_external=allow_external, model=model, api_key=api_key)
         if respuesta_ia:
             pasos.append(ReasoningStep(len(pasos) + 1, "Respuesta enriquecida con IA generativa"))
             return respuesta_ia, pasos

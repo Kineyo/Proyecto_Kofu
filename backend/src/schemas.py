@@ -5,14 +5,17 @@ from pydantic import BaseModel
 class ChatRequest(BaseModel):
     message: str
     direct: bool = False
+    show_thinking: bool = False
     modo: str = "local"
     model: Optional[str] = None
+    api_key: Optional[str] = None
 
 
 class TopicRequest(BaseModel):
     topic: str
     modo: str = "online"
     model: Optional[str] = None
+    api_key: Optional[str] = None
 
 
 class PresentationRequest(BaseModel):
@@ -23,6 +26,7 @@ class PresentationRequest(BaseModel):
     filename: Optional[str] = None
     template: Optional[str] = None
     model: Optional[str] = None
+    api_key: Optional[str] = None
 
 
 class DocumentRequest(BaseModel):
@@ -33,6 +37,7 @@ class DocumentRequest(BaseModel):
     filename: Optional[str] = None
     template: Optional[str] = None
     model: Optional[str] = None
+    api_key: Optional[str] = None
 
 
 class TipsRequest(BaseModel):
@@ -44,6 +49,7 @@ class DigestRequest(BaseModel):
     output_path: Optional[str] = None
     instrucciones: Optional[str] = None
     model: Optional[str] = None
+    vision_model: Optional[str] = None
 
 
 class CorrectRequest(BaseModel):

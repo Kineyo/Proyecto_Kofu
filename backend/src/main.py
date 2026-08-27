@@ -4,8 +4,9 @@ import subprocess
 import time
 import multiprocessing
 import uvicorn
-import webbrowser
 import threading
+import argparse
+import webbrowser
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
@@ -23,14 +24,18 @@ def start_ollama():
     except Exception:
         pass
 
-def open_browser():
-    time.sleep(2)
-    print("Abriendo navegador en http://localhost:8000/")
-    webbrowser.open("http://localhost:8000/")
+def run_server():
+    config = uvicorn.Config(app, host="127.0.0.1", port=8000, log_level="warning", ws="none")
+    server = uvicorn.Server(config)
+    server.run()
 
 def main():
+    parser = argparse.ArgumentParser(description="Kofu AI Server")
+    parser.add_argument("--browser", action="store_true", help="Launch in web browser instead of PyWebView")
+    args, unknown = parser.parse_known_args()
+
     print("========================================")
-    print("   Kofu v1.0 (Beta) - Servidor de IA")
+    print("   Kofu v1.1.02.01 (Beta) - Servidor de IA")
     print("========================================")
     
     start_ollama()
@@ -46,16 +51,29 @@ def main():
     def read_root():
         return RedirectResponse(url="/web/index.html")
 
-    threading.Thread(target=open_browser, daemon=True).start()
+    # Start the FastAPI server in a background thread
+    server_thread = threading.Thread(target=run_server, daemon=True)
+    server_thread.start()
     
-    print("\nTodos los servicios iniciados correctamente en el puerto 8000. Presiona CTRL+C para detener.")
+    print("\nTodos los servicios iniciados correctamente.")
+    time.sleep(2)  # Give the server a moment to start
     
-    try:
-        uvicorn.run(app, host="0.0.0.0", port=8000, log_level="warning", ws="none")
-    except KeyboardInterrupt:
-        print("\nDeteniendo servicios...")
-    finally:
-        print("Servidor detenido.")
+    if args.browser:
+        print("Iniciando en Navegador Web...")
+        webbrowser.open('http://127.0.0.1:8000/')
+        # Keep main thread alive
+        try:
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            pass
+    else:
+        print("Iniciando Interfaz Gráfica (PyWebView)...")
+        import webview
+        webview.create_window('Kofu AI', 'http://127.0.0.1:8000/', width=1280, height=800)
+        webview.start()
+    
+    print("Servidor detenido.")
 
 if __name__ == "__main__":
     multiprocessing.freeze_support()

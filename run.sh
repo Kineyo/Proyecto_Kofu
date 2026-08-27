@@ -54,4 +54,4 @@ $PYTHON_BIN -c "import uvicorn" >/dev/null 2>&1 || {
 cd backend/src
 
 echo "Iniciando orquestador de Kofu en Python..."
-$PYTHON_BIN main.py
+$PYTHON_BIN main.py --browser

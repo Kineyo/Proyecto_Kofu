@@ -10,7 +10,11 @@ class FileProcessor:
         ".wav", ".mp3", ".m4a", ".ogg", ".flac", ".epub", ".zip", ".msg", ".ipynb",
     }
 
-    def __init__(self):
+    def __init__(self, vision_model: str = 'qwen2.5vl:latest'):
+        self.vision_model = vision_model
+        self._init_markitdown()
+
+    def _init_markitdown(self):
         try:
             from markitdown import MarkItDown
             from openai import OpenAI
@@ -18,9 +22,13 @@ class FileProcessor:
                 base_url='http://localhost:11434/v1',
                 api_key='ollama'
             )
-            self._markitdown = MarkItDown(llm_client=client, llm_model='qwen2.5vl:3b')
+            self._markitdown = MarkItDown(llm_client=client, llm_model=self.vision_model)
         except ImportError:
             self._markitdown = None
+
+    def reinit_with_model(self, vision_model: str):
+        self.vision_model = vision_model
+        self._init_markitdown()
 
     @property
     def available(self) -> bool:

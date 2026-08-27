@@ -133,11 +133,36 @@ class AIAssistant:
                     "{body}", research[:400]).replace("{conclusion}", research[-200:])
                 slides.append(slide)
         else:
-            slides = [
-                {"title": f"Presentación sobre: {topic}", "layout": 0, "subtitle": "Generado automáticamente", "background": True},
-                {"title": "Introducción", "layout": 1, "text": research[:300] + "...", "background": True},
-                {"title": "Conclusiones", "layout": 5, "text": "Para más información, consulte las fuentes originales.", "background": True},
-            ]
+            prompt_json = (
+                f"Convierte el siguiente texto de investigación en una presentación estructurada. "
+                f"Devuelve ÚNICAMENTE un arreglo JSON de objetos, donde cada objeto represente una diapositiva. "
+                f"Cada diapositiva DEBE tener 'title' (título de la diapositiva), 'layout' (entero: 0 para título, 1 para contenido normal, 5 para conclusiones/cierre) "
+                f"y 'text' (el texto de la diapositiva en viñetas muy bien resumidas y explicadas). "
+                f"Asegúrate de generar entre 7 y 15 diapositivas bien detalladas. "
+                f"INVESTIGACIÓN: {research[:4000]}"
+            )
+            try:
+                raw_json, _ = self.reasoning_engine.ollama_engine.razonar(prompt_json, model=model, system_prompt="Eres un creador de presentaciones. Devuelve estrictamente un JSON de arreglo de objetos.")
+                import json
+                
+                json_match = __import__("re").search(r'\[.*\]', raw_json, __import__("re").DOTALL)
+                if json_match:
+                    slides = json.loads(json_match.group(0))
+                else:
+                    slides = json.loads(raw_json)
+                    
+                for s in slides:
+                    s["background"] = True
+                    s["layout"] = s.get("layout", 1)
+            except Exception:
+                slides = [{"title": f"Presentación sobre: {topic}", "layout": 0, "subtitle": "Generado automáticamente", "background": True}]
+                
+                # Dynamic fallback: Split research into reasonable chunks instead of hardcoding 3 slides
+                chunks = [research[i:i+400] for i in range(0, len(research), 400)]
+                for i, chunk in enumerate(chunks[:10]):
+                    slides.append({"title": f"Sección {i+1}", "layout": 1, "text": chunk + "...", "background": True})
+                
+                slides.append({"title": "Conclusiones", "layout": 5, "text": "Para más información, consulte las fuentes originales.", "background": True})
 
         result = self.office_agent.create_powerpoint(out, slides, template_path=template_path, theme=theme)
         result["filename"] = os.path.basename(out)

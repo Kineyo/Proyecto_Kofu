@@ -62,5 +62,5 @@ if exist "backend\src" (
 )
 
 echo Iniciando orquestador de Kofu en Python...
-python main.py
+python main.py --browser
 pause

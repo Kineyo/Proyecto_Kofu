@@ -9,12 +9,19 @@ let currentMode = 'local';
 let activeTasks = 0;
 let selectedFile = null;
 
+// --- Model selection state (layer logic: only call the needed model) ---
+let chatModel = localStorage.getItem('kofu_chat_model') || 'llama3.2:3b';
+let docModel = localStorage.getItem('kofu_doc_model') || 'gemma3:12b';
+let visionModel = localStorage.getItem('kofu_vision_model') || 'qwen2.5vl:latest';
+let availableModels = [];
+
 document.addEventListener('DOMContentLoaded', async () => {
     const badge = document.getElementById('portBadge');
     if (badge) badge.textContent = `:Unificado`;
     await Promise.all([loadTemplates(), loadOllamaModels()]);
     setupEventListeners();
     updateTaskCounter();
+    restoreModelSelections();
 });
 
 function setupEventListeners() {
@@ -27,6 +34,9 @@ function setupEventListeners() {
     const apiKeyInput = document.getElementById('apiKeyInput');
     const fileInput = document.getElementById('fileInput');
     const removeFileBtn = document.getElementById('removeFileBtn');
+    const modelSettingsBtn = document.getElementById('modelSettingsBtn');
+    const closeModelSettings = document.getElementById('closeModelSettings');
+    const refreshModelsBtn = document.getElementById('refreshModelsBtn');
 
     shutdownBtn.addEventListener('click', () => {
         if (confirm('Apagar')) {
@@ -54,15 +64,36 @@ function setupEventListeners() {
         localStorage.setItem('kofu_api_key', e.target.value);
     });
 
-    const ollamaModelInput = document.getElementById('ollamaModelInput');
-    const savedModel = localStorage.getItem('kofu_ollama_model');
-    if (savedModel) ollamaModelInput.value = savedModel;
-    ollamaModelInput.addEventListener('input', (e) => {
-        localStorage.setItem('kofu_ollama_model', e.target.value);
-    });
-
     fileInput.addEventListener('change', handleFileSelect);
     removeFileBtn.addEventListener('click', removeSelectedFile);
+
+    // Model settings panel
+    modelSettingsBtn.addEventListener('click', toggleModelSettings);
+    closeModelSettings.addEventListener('click', () => {
+        document.getElementById('modelSettingsPanel').classList.remove('open');
+    });
+
+    // Model select change listeners
+    document.getElementById('chatModelSelect').addEventListener('change', (e) => {
+        chatModel = e.target.value;
+        localStorage.setItem('kofu_chat_model', chatModel);
+    });
+    document.getElementById('docModelSelect').addEventListener('change', (e) => {
+        docModel = e.target.value;
+        localStorage.setItem('kofu_doc_model', docModel);
+    });
+    document.getElementById('visionModelSelect').addEventListener('change', (e) => {
+        visionModel = e.target.value;
+        localStorage.setItem('kofu_vision_model', visionModel);
+    });
+
+    // Refresh models button
+    refreshModelsBtn.addEventListener('click', loadOllamaModels);
+}
+
+function toggleModelSettings() {
+    const panel = document.getElementById('modelSettingsPanel');
+    panel.classList.toggle('open');
 }
 
 function handleFileSelect(e) {
@@ -86,6 +117,12 @@ function switchMode(mode) {
     document.getElementById('apiConfig').style.display = mode === 'online' ? 'block' : 'none';
 }
 
+function getApiKey() {
+    if (currentMode !== 'online') return null;
+    const key = document.getElementById('apiKeyInput').value.trim();
+    return key || null;
+}
+
 function updateTaskCounter() {
     document.getElementById('activeTasks').textContent = activeTasks;
 }
@@ -101,18 +138,72 @@ function decrementTaskCounter() {
 }
 
 async function loadOllamaModels() {
+    const listContainer = document.getElementById('ollamaModelsList');
+    listContainer.innerHTML = '<p class="loading-models">Cargando modelos...</p>';
     try {
         const response = await fetch(`${URL_OLLAMA}/ollama/models`);
-        if (!response.ok) return;
+        if (!response.ok) {
+            listContainer.innerHTML = '<p class="loading-models">No se pudo conectar</p>';
+            return;
+        }
         const data = await response.json();
-        const datalist = document.getElementById('ollamaModelsList');
-        datalist.innerHTML = '';
-        (data.models || []).forEach(name => {
-            const option = document.createElement('option');
-            option.value = name;
-            datalist.appendChild(option);
-        });
-    } catch (_) {}
+        availableModels = data.models || [];
+        
+        // Update sidebar list
+        if (availableModels.length === 0) {
+            listContainer.innerHTML = '<p class="loading-models">No hay modelos instalados</p>';
+        } else {
+            listContainer.innerHTML = '';
+            availableModels.forEach(name => {
+                const tag = document.createElement('span');
+                tag.className = 'model-tag';
+                tag.textContent = name;
+                tag.title = name;
+                listContainer.appendChild(tag);
+            });
+        }
+
+        // Update model selects
+        populateModelSelect('chatModelSelect', chatModel);
+        populateModelSelect('docModelSelect', docModel);
+        populateModelSelect('visionModelSelect', visionModel);
+    } catch (_) {
+        listContainer.innerHTML = '<p class="loading-models">Ollama no disponible</p>';
+        // Still populate selects with defaults
+        populateModelSelect('chatModelSelect', chatModel);
+        populateModelSelect('docModelSelect', docModel);
+        populateModelSelect('visionModelSelect', visionModel);
+    }
+}
+
+function populateModelSelect(selectId, currentValue) {
+    const select = document.getElementById(selectId);
+    select.innerHTML = '';
+    
+    // Ensure current value is in the list
+    const allOptions = new Set(availableModels);
+    allOptions.add(currentValue);
+    
+    // Add defaults if not present
+    const defaults = { chatModelSelect: 'llama3.2:3b', docModelSelect: 'gemma3:12b', visionModelSelect: 'qwen2.5vl:latest' };
+    if (defaults[selectId]) allOptions.add(defaults[selectId]);
+
+    Array.from(allOptions).sort().forEach(name => {
+        const option = document.createElement('option');
+        option.value = name;
+        option.textContent = name;
+        if (name === currentValue) option.selected = true;
+        select.appendChild(option);
+    });
+}
+
+function restoreModelSelections() {
+    const chatSel = document.getElementById('chatModelSelect');
+    const docSel = document.getElementById('docModelSelect');
+    const visSel = document.getElementById('visionModelSelect');
+    if (chatSel.value !== chatModel) chatSel.value = chatModel;
+    if (docSel.value !== docModel) docSel.value = docModel;
+    if (visSel.value !== visionModel) visSel.value = visionModel;
 }
 
 async function loadTemplates() {
@@ -255,17 +346,21 @@ async function sendMessage() {
 
         if (selectedFile) {
             if (docType) {
+                // LAYER: Document model used for doc creation from file
                 await createDocumentFromFile(selectedFile, docType, template);
             } else {
+                // LAYER: Vision model used for file processing (MarkItDown)
                 await processFile(selectedFile);
             }
         } else if (docType && (message.toLowerCase().includes('crear') || message.toLowerCase().includes('hacer'))) {
+            // LAYER: Document model used
             await createDocument(message, docType, template);
         } else if (currentMode === 'online' && isResearchQuery(message)) {
             const result = await researchTopic(message);
             removeTypingIndicator();
             addMessage(result, 'ai');
         } else {
+            // LAYER: Chat model used
             const result = await chatWithAI(message);
             removeTypingIndicator();
             addMessage(result, 'ai');
@@ -287,6 +382,9 @@ async function sendMessage() {
 async function processFile(file) {
     const formData = new FormData();
     formData.append('file', file);
+    // LAYER: Send vision model for MarkItDown processing
+    formData.append('vision_model', visionModel);
+    if (getApiKey()) formData.append('api_key', getApiKey());
 
     const response = await fetch(`${URL_CHAT}/files/upload`, {
         method: 'POST',
@@ -323,6 +421,9 @@ async function createDocumentFromFile(file, docType, template) {
         style: isWord ? 'professional' : undefined,
         theme: isWord ? undefined : 'professional',
         modo: currentMode,
+        // LAYER: Document model for document generation
+        model: docModel,
+        api_key: getApiKey(),
     };
 
     const response = await fetch(`${URL_OFFICE}${endpoint}`, {
@@ -367,15 +468,16 @@ function extractTopic(message) {
 }
 
 async function chatWithAI(message) {
-    const model = document.getElementById('ollamaModelInput').value.trim();
-
+    // LAYER: Only chat model is used here
     const response = await fetch(`${URL_CHAT}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             message,
             show_thinking: false,
-            model: model || null,
+            model: chatModel,
+            modo: currentMode,
+            api_key: getApiKey(),
         }),
     });
 
@@ -391,10 +493,16 @@ async function chatWithAI(message) {
 async function researchTopic(message) {
     const topic = extractTopic(message);
 
+    // LAYER: Research uses document model for content generation
     const response = await fetch(`${URL_RESEARCH}/research`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic, modo: 'online' }),
+        body: JSON.stringify({
+            topic,
+            modo: 'online',
+            model: docModel,
+            api_key: getApiKey(),
+        }),
     });
 
     if (!response.ok) {
@@ -419,6 +527,9 @@ async function createDocument(topic, docType, template) {
         style: isWord ? 'professional' : undefined,
         theme: isWord ? undefined : 'professional',
         modo: currentMode,
+        // LAYER: Document model for doc generation
+        model: docModel,
+        api_key: getApiKey(),
     };
 
     const response = await fetch(`${URL_CHAT}${endpoint}`, {

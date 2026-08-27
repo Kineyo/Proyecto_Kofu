@@ -12,8 +12,35 @@ class WebResearcher:
         self.google_api_key = google_api_key or os.getenv("GOOGLE_API_KEY")
         self.google_cx = google_cx or os.getenv("GOOGLE_CX")
 
+    def _search_wikipedia(self, query: str, num_results: int) -> List[Dict[str, str]]:
+        import requests
+        url = "https://es.wikipedia.org/w/api.php"
+        params = {
+            "action": "query",
+            "list": "search",
+            "srsearch": query,
+            "utf8": "",
+            "format": "json",
+            "srlimit": num_results
+        }
+        try:
+            resp = requests.get(url, params=params, headers=self.HEADERS, timeout=10)
+            data = resp.json()
+            results = []
+            for item in data.get("query", {}).get("search", []):
+                snippet = item.get("snippet", "").replace('<span class="searchmatch">', '').replace('</span>', '')
+                results.append({
+                    "title": item.get("title", ""),
+                    "url": f"https://es.wikipedia.org/wiki/{item.get('title', '').replace(' ', '_')}",
+                    "content": snippet,
+                    "source": "Wikipedia"
+                })
+            return results
+        except:
+            return []
+
     def search_web(self, query: str, num_results: int = 5) -> List[Dict[str, str]]:
-        for buscador in (self._search_google, self._search_duckduckgo, self._search_bing):
+        for buscador in (self._search_google, self._search_wikipedia, self._search_duckduckgo, self._search_bing):
             try:
                 results = buscador(query, num_results)
                 if results:

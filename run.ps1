@@ -67,4 +67,4 @@ if (Test-Path "backend\src") {
 }
 
 Write-Host "Iniciando orquestador de Kofu en Python..." -ForegroundColor Green
-python main.py
+python main.py --browser
