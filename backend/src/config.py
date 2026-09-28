@@ -1,7 +1,7 @@
 import os
 import socket
 
-DEFAULT_OLLAMA_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+DEFAULT_OLLAMA_URL = os.getenv("OLLAMA_HOST", "http://localhost:11434")
 
 DEFAULT_OLLAMA_MODELS = [
     os.getenv("OLLAMA_MODEL_PRIMARY", "gemma4:12b"),
