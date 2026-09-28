@@ -24,7 +24,7 @@ if __name__ == "__main__":
     port = find_free_port(PREFERRED_PORTS)
 
     from paths import WEB_DIR
-    port_file = os.path.join(WEB_DIR, '.port')
+    port_file = WEB_DIR / '.port'
     try:
         with open(port_file, 'w') as f:
             f.write(str(port))

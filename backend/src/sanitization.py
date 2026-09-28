@@ -1,4 +1,3 @@
-
 import os
 import re
 
@@ -43,7 +42,8 @@ class SanitizadorEntrada:
 
     def sanitizar_nombre_archivo(self, nombre: str) -> str:
         limpio = re.sub(r'[<>:"/\\|?*]', "", nombre)
-        limpio = os.path.basename(limpio)
+        from pathlib import Path
+        limpio = Path(limpio).name
         return limpio[:255]
 
 

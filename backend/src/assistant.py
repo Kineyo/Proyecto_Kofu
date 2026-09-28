@@ -8,14 +8,12 @@ from office_agent import OfficeAgent, OUTPUT_DIR, ARCHIVOS_DIR
 from ollama_client import NoModelAvailableError
 from reasoning import ChainOfThought, HybridReasoningEngine, ReasoningStep
 from sanitization import SanitizadorEntrada, TypoCorrector
-from web_research import WebResearcher
 
 
 class AIAssistant:
     def __init__(self, use_ollama: bool = True):
         self.sanitizador = SanitizadorEntrada()
         self.typo_corrector = TypoCorrector()
-        self.web_researcher = WebResearcher()
         self.office_agent = OfficeAgent()
         self.file_processor = FileProcessor()
         self.knowledge_base = KnowledgeBase()
@@ -24,7 +22,7 @@ class AIAssistant:
 
     @staticmethod
     def _permite_internet(modo: str) -> bool:
-        return modo == "online"
+        return False # Force completely offline
 
     def _preparar_entrada(self, user_input: str) -> str:
         if not self.sanitizador.es_entrada_segura(user_input):
@@ -46,32 +44,15 @@ class AIAssistant:
                        model: Optional[str] = None) -> Tuple[str, List[ReasoningStep]]:
         entrada = self._preparar_entrada(user_input)
         self.chain_of_thought.steps = []
-        self.chain_of_thought.add_step(f"Acceso directo ({modo}, modelo={model or 'auto'}): {entrada}")
+        self.chain_of_thought.add_step(f"Analizando solicitud directa ({modo}, modelo={model or 'auto'}): {entrada}")
         response, steps = self.reasoning_engine.direct_reason(
             entrada, allow_external=self._permite_internet(modo), model=model
         )
         self.chain_of_thought.add_step("Respuesta directa generada")
         return response, steps
 
-    def research_topic(self, topic: str, modo: str = "online", model: Optional[str] = None, style: str = "académico", target_pages: str = "12 a 15 páginas") -> str:
-        if not self._permite_internet(modo):
-            return "La investigación web requiere modo 'online' (necesita conexión a internet)."
-        
-        # Varias consultas engañando a Ollama
-        consultas = [topic, f"detalles e información técnica sobre {topic}", f"ejemplos y casos de uso de {topic}"]
-        all_results = []
-        for q in consultas:
-            res = self.web_researcher.search_web(q, num_results=3)
-            all_results.extend(res)
-        
-        # Escribiendo todo en crudo en un .md
-        raw_info = self.web_researcher.generate_summary(topic, all_results)
-        raw_path = os.path.join(OUTPUT_DIR, f"raw_research_{topic[:20].replace(' ', '_')}.md")
-        os.makedirs(os.path.dirname(os.path.abspath(raw_path)), exist_ok=True)
-        with open(raw_path, "w", encoding="utf-8") as f:
-            f.write(raw_info)
-            
-        # Ollama genera un documento extenso por capítulos
+    def research_topic(self, topic: str, modo: str = "local", model: Optional[str] = None, style: str = "académico", target_pages: str = "12 a 15 páginas") -> str:
+        # Operamos siempre 100% offline mediante el modelo local
         if self.reasoning_engine.ollama_engine:
             try:
                 # Pedimos un índice
@@ -88,7 +69,6 @@ class AIAssistant:
                         f"Escribe de manera sumamente extensa, detallada y con tono {style} el capítulo titulado '{cap}' "
                         f"para un documento sobre '{topic}'.\nEl documento completo medirá unas {target_pages}, por lo que este capítulo DEBE ser extremadamente largo y profundo (equivale a 2 o 3 páginas de contenido denso).\n"
                         f"REGLA CRÍTICA: NO incluyas ninguna introducción ni conclusión general en este capítulo (a menos que el capítulo se llame expresamente Introducción o Conclusión). Enfócate única y exclusivamente en desarrollar el subtema '{cap}'.\n"
-                        f"Utiliza esta información de internet como base:\n{raw_info[:3000]}"
                     )
                     texto_cap, _ = self.reasoning_engine.ollama_engine.razonar(prompt_capitulo, model=model)
                     documento_extenso += f"\n\n{texto_cap}\n"
@@ -98,30 +78,29 @@ class AIAssistant:
             except Exception:
                 pass
         
-        return raw_info
+        return f"No se pudo generar el contenido para '{topic}' usando el modelo local. Por favor, provea un documento de base si no se logra la generacion."
 
     def get_office_tips(self, software: str) -> List[str]:
         return {"powerpoint": self.knowledge_base.POWERPOINT_TIPS,
                 "word": self.knowledge_base.WORD_TIPS}.get(software.lower(), [])
 
     def create_presentation(self, topic: str, output_path: Optional[str] = None,
-                             theme: str = "professional", modo: str = "online",
+                             theme: str = "professional", modo: str = "local",
                              filename: Optional[str] = None,
                              template: Optional[str] = None,
                              model: Optional[str] = None) -> Dict[str, Any]:
         research = self.research_topic(topic, modo, model, style=theme, target_pages="10 a 15 diapositivas")
         safe_name = filename or f"presentacion_{topic[:30].replace(' ', '_')}.pptx"
-        out = output_path or os.path.join(OUTPUT_DIR, safe_name)
-        os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
+        from pathlib import Path
+        out = output_path or str(OUTPUT_DIR / safe_name)
+        Path(out).resolve().parent.mkdir(parents=True, exist_ok=True)
 
         template_path = None
         schema = None
         if template:
             if not template.endswith(".potx"):
                 template += ".potx"
-            template_path = os.path.join(
-                TEMPLATES_DIR, 'powerpoint', template
-            )
+            template_path = str(TEMPLATES_DIR / 'powerpoint' / template)
             schema = self.office_agent.get_template_schema(template)
 
         if schema and "slides" in schema:
@@ -144,8 +123,9 @@ class AIAssistant:
             try:
                 raw_json, _ = self.reasoning_engine.ollama_engine.razonar(prompt_json, model=model, system_prompt="Eres un creador de presentaciones. Devuelve estrictamente un JSON de arreglo de objetos.")
                 import json
+                import re
                 
-                json_match = __import__("re").search(r'\[.*\]', raw_json, __import__("re").DOTALL)
+                json_match = re.search(r'\[.*\]', raw_json, re.DOTALL)
                 if json_match:
                     slides = json.loads(json_match.group(0))
                 else:
@@ -165,19 +145,19 @@ class AIAssistant:
                 slides.append({"title": "Conclusiones", "layout": 5, "text": "Para más información, consulte las fuentes originales.", "background": True})
 
         result = self.office_agent.create_powerpoint(out, slides, template_path=template_path, theme=theme)
-        result["filename"] = os.path.basename(out)
+        result["filename"] = Path(out).name
         return result
 
     def create_document(self, topic: str, output_path: Optional[str] = None,
-                         style: str = "professional", modo: str = "online",
+                         style: str = "professional", modo: str = "local",
                          filename: Optional[str] = None,
                          template: Optional[str] = None,
                          model: Optional[str] = None) -> Dict[str, Any]:
         import random
         if not template:
-            word_templates_dir = os.path.join(TEMPLATES_DIR, 'word')
-            if os.path.exists(word_templates_dir):
-                available = [f for f in os.listdir(word_templates_dir) if f.endswith(('.dotx', '.docx')) and not f.startswith('~$')]
+            word_templates_dir = TEMPLATES_DIR / 'word'
+            if word_templates_dir.exists():
+                available = [f.name for f in word_templates_dir.iterdir() if f.suffix in ('.dotx', '.docx') and not f.name.startswith('~$')]
                 if available:
                     template = random.choice(available)
             if style == "professional":
@@ -185,17 +165,16 @@ class AIAssistant:
 
         research = self.research_topic(topic, modo, model, style=style, target_pages="12 a 15 hojas")
         safe_name = filename or f"documento_{topic[:30].replace(' ', '_')}.docx"
-        out = output_path or os.path.join(OUTPUT_DIR, safe_name)
-        os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
+        from pathlib import Path
+        out = output_path or str(OUTPUT_DIR / safe_name)
+        Path(out).resolve().parent.mkdir(parents=True, exist_ok=True)
 
         template_path = None
         schema = None
         if template:
             if not template.endswith(".dotx"):
                 template += ".dotx"
-            template_path = os.path.join(
-                TEMPLATES_DIR, 'word', template
-            )
+            template_path = str(TEMPLATES_DIR / 'word' / template)
             schema = self.office_agent.get_template_schema(template)
 
         subtitle = "Un análisis exhaustivo"
@@ -222,11 +201,11 @@ class AIAssistant:
                 {"type": "document_subtitle", "text": subtitle},
                 {"type": "paragraph", "text": research},
                 {"type": "heading", "text": "Conocimiento adicional", "level": 2},
-                {"type": "paragraph", "text": "Este documento fue generado automáticamente con información de fuentes públicas."},
+                {"type": "paragraph", "text": "Este documento fue generado automáticamente con el modelo local."},
             ]
 
         result = self.office_agent.create_word_document(out, content, template_path=template_path, style=style)
-        result["filename"] = os.path.basename(out)
+        result["filename"] = Path(out).name
         return result
 
     def digest_file(self, file_path: str, output_path: Optional[str] = None,
@@ -235,27 +214,45 @@ class AIAssistant:
         if not extraido.get("success"):
             return extraido
 
-        texto_preparado = self._preparar_entrada(extraido["text_content"])
+        texto_preparado = self._preparar_entrada(extraido.get("text_content", ""))
 
         prompt = instrucciones or "Resume y estructura el siguiente contenido de forma clara y organizada:"
         digestion = texto_preparado
         if self.reasoning_engine.ollama_engine:
             try:
-                digestion, modelo_usado = self.reasoning_engine.ollama_engine.razonar(
-                    f"{prompt}\n\n{texto_preparado}", model=model
-                )
+                CHUNK_SIZE = 3000
+                OVERLAP = 500
+                chunks = []
+                start = 0
+                while start < len(texto_preparado):
+                    chunks.append(texto_preparado[start:start + CHUNK_SIZE])
+                    start += CHUNK_SIZE - OVERLAP
+
+                respuestas_chunks = []
+                modelo_usado = None
+                for chunk in chunks:
+                    prompt_chunk = f"{prompt}\n\n<context>\n{chunk}\n</context>"
+                    resp, mod = self.reasoning_engine.ollama_engine.razonar(
+                        prompt_chunk, model=model
+                    )
+                    respuestas_chunks.append(resp)
+                    modelo_usado = mod
+
+                digestion = "\n\n".join(respuestas_chunks)
                 self.reasoning_engine.last_model_used = modelo_usado
             except NoModelAvailableError:
                 raise
             except RuntimeError:
                 pass
 
-        resultado = {"success": True, "filename": extraido["filename"], "digestion": digestion}
+        resultado = {"success": True, "filename": extraido.get("filename", ""), "digestion": digestion}
 
         if output_path:
-            os.makedirs(os.path.dirname(os.path.abspath(output_path)) or ".", exist_ok=True)
-            with open(output_path, "w", encoding="utf-8") as f:
+            from pathlib import Path
+            out_path = Path(output_path).resolve()
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(out_path, "w", encoding="utf-8") as f:
                 f.write(digestion)
-            resultado["output_path"] = os.path.abspath(output_path)
+            resultado["output_path"] = str(out_path)
 
         return resultado

@@ -13,10 +13,11 @@ from fastapi.responses import RedirectResponse
 from api import app
 
 def start_ollama():
+    from config import DEFAULT_OLLAMA_URL
     try:
         import urllib.request
         try:
-            urllib.request.urlopen("http://localhost:11434", timeout=1)
+            urllib.request.urlopen(DEFAULT_OLLAMA_URL, timeout=1)
         except Exception:
             print("Iniciando servicio nativo de Ollama en segundo plano...")
             subprocess.Popen(["ollama", "serve"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -44,7 +45,7 @@ def main():
     
     # Configure Web Server and API
     from paths import WEB_DIR
-    web_dir = WEB_DIR
+    web_dir = str(WEB_DIR)
     app.mount("/web", StaticFiles(directory=web_dir), name="web")
     
     @app.get("/")
