@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-FileProcessor para LarIA v1.5
+FileProcessor para LarIA v0.7
 Motor de extracción offline de documentos basado en Document-Offline.
 """
 import os

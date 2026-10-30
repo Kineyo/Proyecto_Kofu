@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-LarIA AI v1.5 - Orquestador Principal
+LarIA AI v0.7 - Orquestador Principal
 """
 import argparse
 import multiprocessing

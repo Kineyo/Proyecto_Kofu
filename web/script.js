@@ -1,5 +1,5 @@
 // ==========================================================================
-// LarIA AI v1.5 // Frontend Controller
+// LarIA AI v0.7 // Frontend Controller
 // ==========================================================================
 
 const API_BASE = window.location.origin;
@@ -46,7 +46,7 @@ function setupEventListeners() {
             document.body.innerHTML = `
                 <div style="height:100vh;display:flex;align-items:center;justify-content:center;background:#07090e;color:#8a99ad;font-family:sans-serif;text-align:center;">
                     <div>
-                        <h1 style="color:#00f5d4;margin-bottom:12px;">⚡ LarIA AI v1.5</h1>
+                        <h1 style="color:#00f5d4;margin-bottom:12px;">⚡ LarIA AI v0.7</h1>
                         <p>El servidor local se ha detenido correctamente.</p>
                         <p style="font-size:12px;margin-top:8px;color:#536275;">Puedes cerrar esta pestaña o ventana.</p>
                     </div>

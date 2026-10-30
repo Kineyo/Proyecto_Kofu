@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Módulo de Sanitización para LarIA v1.5
+Módulo de Sanitización para LarIA v0.7
 """
 import re
 from pathlib import Path

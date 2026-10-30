@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-AIAssistant para LarIA v1.5
+AIAssistant para LarIA v0.7
 Orquestación central: Razonamiento e ingesta documental offline.
 """
 import json

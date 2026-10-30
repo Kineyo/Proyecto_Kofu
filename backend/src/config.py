@@ -4,7 +4,7 @@ import socket
 from pathlib import Path
 
 APP_NAME = "LarIA AI"
-APP_VERSION = "1.5.0"
+APP_VERSION = "0.7.0"
 
 DEFAULT_OLLAMA_URL = os.getenv("OLLAMA_BASE_URL", os.getenv("OLLAMA_HOST", "http://localhost:11434"))
 

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-OfficeAgent para LarIA v1.5
+OfficeAgent para LarIA v0.7
 Generación nativa y offline de documentos Word (.docx) y presentaciones PowerPoint (.pptx).
 """
 import os

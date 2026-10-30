@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Rutas API para LarIA v1.5
+Rutas API para LarIA v0.7
 """
 import os
 from pathlib import Path

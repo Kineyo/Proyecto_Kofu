@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Motor de razonamiento para LarIA v1.5
+Motor de razonamiento para LarIA v0.7
 """
 import os
 import re

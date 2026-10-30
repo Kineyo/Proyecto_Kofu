@@ -1,10 +1,10 @@
-# LarIA v1.5 // Ultra-Fast Neural Office Engine
+# LarIA v0.7 (Beta) // Ultra-Fast Neural Office Engine
 
 **LarIA** es la versión ultrarrápida, ligera y optimizada de la plataforma de generación ofimática con IA. Permite crear documentos de Word (`.docx`) y presentaciones PowerPoint (`.pptx`) con plantillas profesionales, de forma **100% offline**, sin requerir Microsoft Office ni LibreOffice instalado, conectándose al motor local de **Ollama** y procesando archivos mediante el motor de ingesta de `Document-Offline`.
 
 ---
 
-## ⚡ Características Principales de LarIA v1.5
+## ⚡ Características Principales de LarIA v0.7
 
 - **Ingesta Documental Offline (Document-Offline)**: Extracción local con comprobación de *Magic Numbers* para evitar archivos falsos. Lee PDF, DOCX, PPTX, Excel, imágenes y archivos de texto sin librerías pesadas en la nube.
 - **Pipeline Inteligente Archivo -> Documento**: Extrae el contenido de cualquier archivo subido para redactar informes o diapositivas basadas en la información real del usuario.
