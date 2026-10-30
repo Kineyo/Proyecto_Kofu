@@ -82,7 +82,7 @@ std::string pt_to_hps(int pt) {
 
 /// Point size to EMU (English Metric Units) for spacing.
 /// 1 pt = 12700 EMU.
-std::string pt_to_emu(int pt) {
+[[maybe_unused]] std::string pt_to_emu(int pt) {
     return std::to_string(pt * 12700);
 }
 

@@ -51,7 +51,7 @@ std::string unquote(const std::string& s) {
 }
 
 /// Get an environment variable, or return a default value.
-std::string getenv_or(const char* name, const std::string& default_val) {
+[[maybe_unused]] std::string getenv_or(const char* name, const std::string& default_val) {
     const char* val = std::getenv(name);
     if (val && val[0] != '\0') return std::string(val);
     return default_val;

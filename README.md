@@ -69,6 +69,9 @@ El enrutador dinámico (`ModelRouter`) asigna automáticamente el mejor modelo d
 | **Generación de Código / Markdown**| `qwen2.5-coder:7b` | `qwen2.5-coder:1.5b`, `qwen-2.5-coder-Uncensored` |
 | **Sanitización y Corrección Rápida**| `qwen2.5:0.5b` | `qwen3:0.6b`, `qwen2.5:1.5b` |
 
+> [!NOTE]
+> **Hub de Modelos en el Frontend:** La interfaz web ahora incluye el botón superior **"🧠 Modelos Qwen"** con un catálogo interactivo de comandos de 1-clic para Ollama local, enlaces directos a los repositorios oficiales de Hugging Face y variantes cuantizadas GGUF con fine-tuning (bartowski, unsloth, etc.).
+
 ---
 
 ## 📦 Requisitos y Dependencias

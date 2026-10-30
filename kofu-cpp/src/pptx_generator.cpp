@@ -48,12 +48,12 @@ bool pptx_zip_add(zip_t* archive, const char* name, const std::string& content) 
 }
 
 /// EMU from centimeters (1 cm = 360000 EMU).
-std::string cm_to_emu(double cm) {
+[[maybe_unused]] std::string cm_to_emu(double cm) {
     return std::to_string(static_cast<long long>(cm * 360000));
 }
 
 /// EMU from points (1 pt = 12700 EMU).
-std::string pt_to_emu(int pt) {
+[[maybe_unused]] std::string pt_to_emu(int pt) {
     return std::to_string(pt * 12700);
 }
 
