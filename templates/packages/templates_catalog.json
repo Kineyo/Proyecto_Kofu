@@ -1,0 +1,453 @@
+[
+  {
+    "filename": "Plantillas APA 7.zip",
+    "title": "Paquete APA 7ma Edición",
+    "description": "Plantillas académicas estandarizadas con formato APA 7 para tesis, ensayos y reportes.",
+    "icon": "🎓",
+    "color": "#1A365D",
+    "size_kb": 188.0,
+    "template_count": 6,
+    "items": [
+      {
+        "type": "word",
+        "filename": "APA7_Tesis_Universitaria.dotx",
+        "title": "Formato APA 7 - Tesis Universitaria"
+      },
+      {
+        "type": "word",
+        "filename": "APA7_Articulo_Cientifico.dotx",
+        "title": "Formato APA 7 - Artículo Científico"
+      },
+      {
+        "type": "word",
+        "filename": "APA7_Ensayo_Academico.dotx",
+        "title": "Formato APA 7 - Ensayo Académico"
+      },
+      {
+        "type": "word",
+        "filename": "APA7_Reporte_Laboratorio.dotx",
+        "title": "Formato APA 7 - Reporte de Laboratorio"
+      },
+      {
+        "type": "powerpoint",
+        "filename": "APA7_Defensa_Tesis.potx",
+        "title": "Defensa de Tesis APA 7"
+      },
+      {
+        "type": "powerpoint",
+        "filename": "APA7_Coloquio_Investigacion.potx",
+        "title": "Coloquio de Investigación"
+      }
+    ]
+  },
+  {
+    "filename": "Plantillas Institucional.zip",
+    "title": "Paquete Institucional y Gubernamental",
+    "description": "Formatos oficiales y de gobierno: oficios, memorándums, actas de acuerdos y circulares.",
+    "icon": "🏛️",
+    "color": "#1C3D5A",
+    "size_kb": 186.1,
+    "template_count": 6,
+    "items": [
+      {
+        "type": "word",
+        "filename": "Institucional_Oficio_Formal.dotx",
+        "title": "Oficio Formal Institucional"
+      },
+      {
+        "type": "word",
+        "filename": "Institucional_Memorandum.dotx",
+        "title": "Memorándum Interno de Coordinación"
+      },
+      {
+        "type": "word",
+        "filename": "Institucional_Acta_Sesion.dotx",
+        "title": "Acta Oficial de Sesión de Consejo"
+      },
+      {
+        "type": "word",
+        "filename": "Institucional_Circular_Normativa.dotx",
+        "title": "Circular Normativa de Cumplimiento"
+      },
+      {
+        "type": "powerpoint",
+        "filename": "Institucional_Rendicion_Cuentas.potx",
+        "title": "Rendición de Cuentas Institucional"
+      },
+      {
+        "type": "powerpoint",
+        "filename": "Institucional_Plan_Estrategico.potx",
+        "title": "Plan Estratégico Institucional"
+      }
+    ]
+  },
+  {
+    "filename": "Plantillas Elegante y Minimalista.zip",
+    "title": "Paquete Elegante y Minimalista",
+    "description": "Estilo refinado, sobrio y moderno con tipografías limpias y contrastes armónicos.",
+    "icon": "✨",
+    "color": "#111827",
+    "size_kb": 185.8,
+    "template_count": 6,
+    "items": [
+      {
+        "type": "word",
+        "filename": "Elegante_Portfolio_Overview.dotx",
+        "title": "Resumen de Portafolio Minimalista"
+      },
+      {
+        "type": "word",
+        "filename": "Elegante_Carta_Presentacion.dotx",
+        "title": "Carta de Presentación Ejecutiva"
+      },
+      {
+        "type": "word",
+        "filename": "Elegante_Propuesta_Servicios.dotx",
+        "title": "Propuesta de Servicios Premium"
+      },
+      {
+        "type": "word",
+        "filename": "Elegante_Ficha_Tecnica.dotx",
+        "title": "Ficha Técnica de Producto Exclusivo"
+      },
+      {
+        "type": "powerpoint",
+        "filename": "Elegante_Pitch_Minimalista.potx",
+        "title": "Pitch Deck Minimalista"
+      },
+      {
+        "type": "powerpoint",
+        "filename": "Elegante_Brand_Guidelines.potx",
+        "title": "Manual de Identidad de Marca"
+      }
+    ]
+  },
+  {
+    "filename": "Plantillas Corporativo y Negocios.zip",
+    "title": "Paquete Corporativo y Negocios",
+    "description": "Soluciones corporativas para análisis de negocio, business plans y reportes de KPIs.",
+    "icon": "💼",
+    "color": "#0F4C81",
+    "size_kb": 186.0,
+    "template_count": 6,
+    "items": [
+      {
+        "type": "word",
+        "filename": "Corporativo_Plan_Negocios.dotx",
+        "title": "Plan Integral de Negocios"
+      },
+      {
+        "type": "word",
+        "filename": "Corporativo_Reporte_Financiero.dotx",
+        "title": "Reporte Financiero Trimestral"
+      },
+      {
+        "type": "word",
+        "filename": "Corporativo_Acuerdo_Confidencialidad.dotx",
+        "title": "Acuerdo de Confidencialidad (NDA)"
+      },
+      {
+        "type": "word",
+        "filename": "Corporativo_Minuta_Directorio.dotx",
+        "title": "Minuta de Comité Ejecutivo"
+      },
+      {
+        "type": "powerpoint",
+        "filename": "Corporativo_Reunion_Inversores.potx",
+        "title": "Presentación ante Inversionistas"
+      },
+      {
+        "type": "powerpoint",
+        "filename": "Corporativo_Reporte_Trimestral_Q.potx",
+        "title": "Resultados Trimestrales (Q-Earnings)"
+      }
+    ]
+  },
+  {
+    "filename": "Plantillas Tecnologia y Startups.zip",
+    "title": "Paquete Tecnología, AI y Startups",
+    "description": "Diseños futuristas de vanguardia para arquitecturas técnicas, pitch decks y roadmaps.",
+    "icon": "⚡",
+    "color": "#065A60",
+    "size_kb": 186.2,
+    "template_count": 6,
+    "items": [
+      {
+        "type": "word",
+        "filename": "Tech_Documento_Arquitectura_Sistema.dotx",
+        "title": "Documento de Arquitectura de Software"
+      },
+      {
+        "type": "word",
+        "filename": "Tech_Manual_Despliegue_DevOps.dotx",
+        "title": "Manual de Despliegue y CI/CD"
+      },
+      {
+        "type": "word",
+        "filename": "Tech_Postmortem_Incidente.dotx",
+        "title": "Análisis Post-Mortem de Incidentes"
+      },
+      {
+        "type": "word",
+        "filename": "Tech_Release_Notes_Version.dotx",
+        "title": "Notas de Lanzamiento de Versión"
+      },
+      {
+        "type": "powerpoint",
+        "filename": "Tech_Pitch_Deck_Startup.potx",
+        "title": "Pitch Deck para Startup Tecnológica"
+      },
+      {
+        "type": "powerpoint",
+        "filename": "Tech_Roadmap_Producto_SaaS.potx",
+        "title": "Roadmap Estratégico de Producto SaaS"
+      }
+    ]
+  },
+  {
+    "filename": "Plantillas Proyectos y Metodologias Agiles.zip",
+    "title": "Paquete Gestión de Proyectos y Ágil",
+    "description": "Documentación para Scrum, Kanban, gestión de riesgos y actas de constitución (Charters).",
+    "icon": "📊",
+    "color": "#283618",
+    "size_kb": 186.1,
+    "template_count": 6,
+    "items": [
+      {
+        "type": "word",
+        "filename": "Agil_Project_Charter_Constitucion.dotx",
+        "title": "Acta de Constitución del Proyecto"
+      },
+      {
+        "type": "word",
+        "filename": "Agil_Matriz_Gestion_Riesgos.dotx",
+        "title": "Matriz de Gestión de Riesgos"
+      },
+      {
+        "type": "word",
+        "filename": "Agil_Sprint_Review_Retrospectiva.dotx",
+        "title": "Minuta de Sprint Review y Retrospectiva"
+      },
+      {
+        "type": "word",
+        "filename": "Agil_Plan_Gestion_Cambios.dotx",
+        "title": "Solicitud y Plan de Gestión de Cambios"
+      },
+      {
+        "type": "powerpoint",
+        "filename": "Agil_Presentacion_Kickoff.potx",
+        "title": "Kick-off Meeting de Proyecto"
+      },
+      {
+        "type": "powerpoint",
+        "filename": "Agil_Tablero_Status_Report.potx",
+        "title": "Reporte de Estado a Dirección (Status Report)"
+      }
+    ]
+  },
+  {
+    "filename": "Plantillas Juridico y Legal.zip",
+    "title": "Paquete Jurídico, Legal y Contratos",
+    "description": "Contratos civiles, convenios laborales, poderes notariales y dictámenes jurídicos.",
+    "icon": "⚖️",
+    "color": "#3D0C11",
+    "size_kb": 186.2,
+    "template_count": 6,
+    "items": [
+      {
+        "type": "word",
+        "filename": "Legal_Contrato_Prestacion_Servicios.dotx",
+        "title": "Contrato de Prestación de Servicios"
+      },
+      {
+        "type": "word",
+        "filename": "Legal_Convenio_Terminacion_Laboral.dotx",
+        "title": "Convenio de Finiquito y Terminación Laboral"
+      },
+      {
+        "type": "word",
+        "filename": "Legal_Dictamen_Juridico_Compliance.dotx",
+        "title": "Opinión Legal y Dictamen de Compliance"
+      },
+      {
+        "type": "word",
+        "filename": "Legal_Poder_Especial_Representacion.dotx",
+        "title": "Poder Notarial de Representación"
+      },
+      {
+        "type": "powerpoint",
+        "filename": "Legal_Auditoria_Legal_DueDiligence.potx",
+        "title": "Presentación de Due Diligence Legal"
+      },
+      {
+        "type": "powerpoint",
+        "filename": "Legal_Capacitacion_Compliance.potx",
+        "title": "Capacitación en Cumplimiento y Ética"
+      }
+    ]
+  },
+  {
+    "filename": "Plantillas Marketing y Ventas.zip",
+    "title": "Paquete Marketing, Ventas y Comercial",
+    "description": "Planes de lanzamiento comercial, campañas publicitarias y propuestas comerciales para clientes.",
+    "icon": "📈",
+    "color": "#780000",
+    "size_kb": 186.3,
+    "template_count": 6,
+    "items": [
+      {
+        "type": "word",
+        "filename": "Marketing_Plan_Estrategico_Lanzamiento.dotx",
+        "title": "Plan Estratégico de Marketing"
+      },
+      {
+        "type": "word",
+        "filename": "Marketing_Propuesta_Comercial_Cliente.dotx",
+        "title": "Propuesta Comercial Ganadora"
+      },
+      {
+        "type": "word",
+        "filename": "Marketing_Brief_Creativo_Campana.dotx",
+        "title": "Briefing Creativo de Campaña"
+      },
+      {
+        "type": "word",
+        "filename": "Marketing_Auditoria_Presencia_Digital.dotx",
+        "title": "Informe de Auditoría Digital y SEO"
+      },
+      {
+        "type": "powerpoint",
+        "filename": "Marketing_Pitch_Comercial_Ventas.potx",
+        "title": "Pitch de Ventas de Alto Cierre"
+      },
+      {
+        "type": "powerpoint",
+        "filename": "Marketing_Reporte_Desempeno_Campanas.potx",
+        "title": "Reporte de Rendimiento de Campañas"
+      }
+    ]
+  },
+  {
+    "filename": "Plantillas Educacion y Docencia.zip",
+    "title": "Paquete Educación y Docencia",
+    "description": "Programas de estudio analíticos, secuencias didácticas y rúbricas de evaluación docente.",
+    "icon": "📚",
+    "color": "#1B4332",
+    "size_kb": 186.3,
+    "template_count": 6,
+    "items": [
+      {
+        "type": "word",
+        "filename": "Edu_Syllabus_Programa_Asignatura.dotx",
+        "title": "Syllabus y Programa de Asignatura"
+      },
+      {
+        "type": "word",
+        "filename": "Edu_Rubrica_Evaluacion_Competencias.dotx",
+        "title": "Rúbrica de Evaluación por Competencias"
+      },
+      {
+        "type": "word",
+        "filename": "Edu_Plan_Clase_Secuencia_Didactica.dotx",
+        "title": "Secuencia Didáctica y Plan de Clase"
+      },
+      {
+        "type": "word",
+        "filename": "Edu_Guia_Estudio_Estudiante.dotx",
+        "title": "Guía de Autoaprendizaje para el Alumno"
+      },
+      {
+        "type": "powerpoint",
+        "filename": "Edu_Leccion_Magistral_Interactiva.potx",
+        "title": "Lección Magistral Interactiva"
+      },
+      {
+        "type": "powerpoint",
+        "filename": "Edu_Taller_Capacitacion_Docente.potx",
+        "title": "Taller de Actualización Pedagógica"
+      }
+    ]
+  },
+  {
+    "filename": "Plantillas Creativo y Editorial.zip",
+    "title": "Paquete Creativo, Medios y Editorial",
+    "description": "Maquetas de revista, guiones de contenido audiovisual y carpetas de prensa (Press Kits).",
+    "icon": "🎨",
+    "color": "#4A0E4E",
+    "size_kb": 185.9,
+    "template_count": 6,
+    "items": [
+      {
+        "type": "word",
+        "filename": "Creativo_Guion_Podcast_Video.dotx",
+        "title": "Guion Literario y Técnico Audiovisual"
+      },
+      {
+        "type": "word",
+        "filename": "Creativo_Kit_Prensa_PressKit.dotx",
+        "title": "Dossier de Prensa y Media Kit"
+      },
+      {
+        "type": "word",
+        "filename": "Creativo_Articulo_Revista_Editorial.dotx",
+        "title": "Artículo Editorial de Revista Cultural"
+      },
+      {
+        "type": "word",
+        "filename": "Creativo_Manifiesto_Marca.dotx",
+        "title": "Manifiesto de Marca e Inspiración"
+      },
+      {
+        "type": "powerpoint",
+        "filename": "Creativo_Portafolio_Agencia.potx",
+        "title": "Portafolio de Agencia Creativa"
+      },
+      {
+        "type": "powerpoint",
+        "filename": "Creativo_Moodboard_Visual.potx",
+        "title": "Moodboard y Concepto Visual"
+      }
+    ]
+  },
+  {
+    "filename": "Plantillas Recursos Humanos.zip",
+    "title": "Paquete Recursos Humanos y Talento",
+    "description": "Manuales de bienvenida (Onboarding), evaluación de desempeño 360° y perfiles de puesto.",
+    "icon": "👥",
+    "color": "#004B49",
+    "size_kb": 186.2,
+    "template_count": 6,
+    "items": [
+      {
+        "type": "word",
+        "filename": "HR_Manual_Bienvenida_Onboarding.dotx",
+        "title": "Manual de Bienvenida al Colaborador"
+      },
+      {
+        "type": "word",
+        "filename": "HR_Descripcion_Perfil_Puesto.dotx",
+        "title": "Perfil y Descripción de Puesto de Trabajo"
+      },
+      {
+        "type": "word",
+        "filename": "HR_Evaluacion_Desempeno_360.dotx",
+        "title": "Formulario de Evaluación de Desempeño 360°"
+      },
+      {
+        "type": "word",
+        "filename": "HR_Politica_Trabajo_Remoto.dotx",
+        "title": "Política de Teletrabajo y Ergonomía"
+      },
+      {
+        "type": "powerpoint",
+        "filename": "HR_Induccion_Nuevo_Personal.potx",
+        "title": "Presentación de Inducción Corporativa"
+      },
+      {
+        "type": "powerpoint",
+        "filename": "HR_Plan_Desarrollo_Liderazgo.potx",
+        "title": "Programa de Formación en Liderazgo"
+      }
+    ]
+  }
+]

@@ -93,6 +93,14 @@
                     <span class="engine-badge" id="engineBadge">OFFLINE READY</span>
                 </div>
                 <div class="top-bar-right">
+                    <button id="templatesHubBtn" class="templates-hub-btn" title="Descargar Paquetes de Plantillas">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                            <line x1="12" y1="22.08" x2="12" y2="12"/>
+                        </svg>
+                        <span>📦 Centro de Plantillas</span>
+                    </button>
                     <button id="modelSettingsBtn" class="model-settings-btn" title="Configurar Modelos">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <circle cx="12" cy="12" r="3"/>
@@ -192,6 +200,31 @@
             </div>
         </main>
     </div>
+
+    <!-- Modal Centro de Descarga de Plantillas -->
+    <div class="templates-modal-backdrop" id="templatesModalBackdrop">
+        <div class="templates-modal" id="templatesModal">
+            <div class="templates-modal-header">
+                <div class="modal-title-group">
+                    <div class="modal-title-top">
+                        <span class="modal-badge">HUB DE RECURSOS</span>
+                        <span class="modal-badge-count" id="packsCountBadge">11 Paquetes Disponibles</span>
+                    </div>
+                    <h3>📦 Centro de Descarga de Plantillas</h3>
+                    <p class="templates-modal-desc">
+                        Descarga paquetes de plantillas temáticas (.zip) con un solo clic. Para usarlas en LarIA, descomprime los archivos <code>.dotx</code> en <code>templates/word/</code> y los <code>.potx</code> en <code>templates/powerpoint/</code>.
+                    </p>
+                </div>
+                <button id="closeTemplatesModal" class="close-panel-btn" title="Cerrar">&times;</button>
+            </div>
+            <div class="templates-modal-body">
+                <div class="templates-grid" id="templatesGrid">
+                    <!-- Inyectado dinámicamente -->
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html>

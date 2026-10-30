@@ -2,6 +2,7 @@
 """
 Rutas API para LarIA v0.7
 """
+import json
 import os
 from pathlib import Path
 from typing import List, Optional
@@ -75,6 +76,39 @@ def get_templates():
         "powerpoint": sorted(ppt_templates),
         "word": sorted(word_templates)
     }
+
+
+@router.get("/templates/packages")
+def get_template_packages():
+    """Retorna el catálogo JSON de paquetes comprimidos de plantillas."""
+    packages_dir = TEMPLATES_DIR / "packages"
+    catalog_path = packages_dir / "templates_catalog.json"
+    if catalog_path.exists():
+        try:
+            with open(catalog_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return []
+
+
+@router.get("/templates/packages/download/{package_name}")
+def download_template_package(package_name: str):
+    """Descarga directamente un paquete comprimido .zip de plantillas."""
+    clean_name = os.path.basename(package_name)
+    if ".." in clean_name or "/" in clean_name or "\\" in clean_name:
+        raise HTTPException(status_code=400, detail="Nombre de archivo inválido")
+
+    packages_dir = TEMPLATES_DIR / "packages"
+    zip_path = packages_dir / clean_name
+    if not zip_path.exists() or not zip_path.is_file():
+        raise HTTPException(status_code=404, detail="Paquete de plantillas no encontrado")
+
+    return FileResponse(
+        str(zip_path),
+        media_type="application/zip",
+        filename=clean_name
+    )
 
 
 @router.post("/chat")

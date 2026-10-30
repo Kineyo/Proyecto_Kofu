@@ -86,6 +86,28 @@ function setupEventListeners() {
         document.getElementById('modelSettingsPanel').classList.remove('open');
     });
 
+    // Centro de Descarga de Plantillas (Hub)
+    const templatesHubBtn = document.getElementById('templatesHubBtn');
+    const closeTemplatesModal = document.getElementById('closeTemplatesModal');
+    const templatesModalBackdrop = document.getElementById('templatesModalBackdrop');
+
+    if (templatesHubBtn) {
+        templatesHubBtn.addEventListener('click', openTemplatesHub);
+    }
+    if (closeTemplatesModal) {
+        closeTemplatesModal.addEventListener('click', closeTemplatesHub);
+    }
+    if (templatesModalBackdrop) {
+        templatesModalBackdrop.addEventListener('click', (e) => {
+            if (e.target === templatesModalBackdrop) closeTemplatesHub();
+        });
+    }
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && templatesModalBackdrop && templatesModalBackdrop.classList.contains('open')) {
+            closeTemplatesHub();
+        }
+    });
+
     document.getElementById('chatModelSelect').addEventListener('change', (e) => {
         chatModel = e.target.value;
         localStorage.setItem('laria_chat_model', chatModel);
@@ -252,6 +274,101 @@ function updateTemplateDropdown() {
             templateSelect.appendChild(opt);
         });
     }
+}
+
+// --------------------------------------------------------------------------
+// Centro de Descarga de Plantillas (Hub de Paquetes)
+// --------------------------------------------------------------------------
+let cachedPacks = null;
+
+async function openTemplatesHub() {
+    const modalBackdrop = document.getElementById('templatesModalBackdrop');
+    if (!modalBackdrop) return;
+    modalBackdrop.classList.add('open');
+
+    const grid = document.getElementById('templatesGrid');
+    if (grid && !cachedPacks) {
+        grid.innerHTML = '<div class="loader-shim" style="grid-column: 1/-1;">Cargando catálogo oficial de plantillas...</div>';
+        try {
+            const res = await fetch(`${API_BASE}/templates/packages`);
+            if (res.ok) {
+                const data = await res.json();
+                if (Array.isArray(data) && data.length > 0) {
+                    cachedPacks = data;
+                }
+            }
+        } catch (_) {}
+
+        if (!cachedPacks || cachedPacks.length === 0) {
+            try {
+                const res2 = await fetch('templates/packages/templates_catalog.json');
+                if (res2.ok) {
+                    const data2 = await res2.json();
+                    if (Array.isArray(data2) && data2.length > 0) cachedPacks = data2;
+                }
+            } catch (_) {}
+        }
+    }
+
+    if (cachedPacks && cachedPacks.length > 0) {
+        renderTemplatesGrid(cachedPacks);
+    }
+}
+
+function closeTemplatesHub() {
+    const modalBackdrop = document.getElementById('templatesModalBackdrop');
+    if (modalBackdrop) modalBackdrop.classList.remove('open');
+}
+
+function renderTemplatesGrid(packs) {
+    const grid = document.getElementById('templatesGrid');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    const countBadge = document.getElementById('packsCountBadge');
+    if (countBadge) countBadge.textContent = `${packs.length} Paquetes Disponibles`;
+
+    packs.forEach(pack => {
+        const card = document.createElement('div');
+        card.className = 'template-card';
+
+        const downloadUrl = `${API_BASE}/templates/packages/download/${encodeURIComponent(pack.filename)}`;
+
+        let itemsHtml = '';
+        if (pack.items && pack.items.length > 0) {
+            itemsHtml = `
+                <div class="template-card-details">
+                    ${pack.items.map(it => `
+                        <div class="template-card-item">
+                            <span class="kind-badge ${it.type}">${it.type === 'word' ? 'DOCX' : 'PPTX'}</span>
+                            <span title="${it.title}">${it.title}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        card.innerHTML = `
+            <div class="template-card-header">
+                <div class="template-card-icon">${pack.icon || '📦'}</div>
+                <div class="template-card-meta">
+                    <div class="template-card-title">${pack.title}</div>
+                    <div class="template-card-stats">${pack.template_count || 6} plantillas · ${pack.size_kb || 186} KB</div>
+                </div>
+            </div>
+            <p class="template-card-desc">${pack.description}</p>
+            ${itemsHtml}
+            <a href="${downloadUrl}" download="${pack.filename}" class="template-download-btn">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                <span>Descargar Paquete (.zip)</span>
+            </a>
+        `;
+        grid.appendChild(card);
+    });
 }
 
 function addMessage(text, role, isError = false, downloadInfo = null) {
