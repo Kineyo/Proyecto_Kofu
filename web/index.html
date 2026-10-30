@@ -1,535 +1,662 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="dark">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LarIA v0.7 // Ultra-Fast Neural Office</title>
-    <link rel="icon" type="image/x-icon" href="Uta icon.ico">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LarIA v0.7 // Ultra-Fast Neural Office</title>
+  <link rel="icon" type="image/x-icon" href="Uta icon.ico">
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="cyber-background"></div>
-    <div class="container">
-        <!-- Barra lateral cibernética -->
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <div class="brand-row">
-                    <div class="brand-glitch" data-text="LarIA">LarIA</div>
-                    <span class="version-tag">v0.7</span>
-                </div>
-                <div class="sidebar-subtitle">
-                    <span class="status-dot pulse"></span>
-                    <span id="systemStatusText">Neural Fast Engine</span>
-                    <span id="portBadge" class="port-badge">127.0.0.1</span>
-                </div>
-            </div>
+  <div class="app-layout" id="app-layout">
 
-            <!-- Selector de Modo -->
-            <div class="control-group">
-                <label class="section-label">MODO DE OPERACIÓN</label>
-                <div class="mode-toggle">
-                    <button id="localModeBtn" class="mode-btn active" data-mode="local">
-                        <span class="mode-icon">⚡</span> 100% Offline
-                    </button>
-                    <button id="onlineModeBtn" class="mode-btn" data-mode="online">
-                        <span class="mode-icon">🌐</span> Cloud / Web
-                    </button>
-                </div>
-            </div>
+    <!-- BARRA LATERAL IZQUIERDA -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-top">
+        <button class="icon-btn" id="btn-toggle-sidebar" title="Contraer menú (Ctrl+B)" aria-label="Contraer menú">
+          <svg viewBox="0 0 24 24" width="20" height="20">
+            <path fill="currentColor" d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h18v2H3v-2z"/>
+          </svg>
+        </button>
+        <div class="brand-badge">
+          <span class="sparkle-dot"></span>
+          <span class="brand-name">LarIA</span>
+          <span class="brand-tag">v0.7</span>
+        </div>
+      </div>
 
-            <!-- Estado de Ollama / Modelos -->
-            <div class="control-group" id="modelConfig">
-                <div class="section-label-row">
-                    <label class="section-label">MODELOS DISPONIBLES</label>
-                    <button id="refreshModelsBtn" class="icon-action-btn" title="Refrescar catálogo">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                            <path d="M23 4v6h-6M1 20v-6h6"/>
-                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-                        </svg>
-                    </button>
-                </div>
-                <div id="ollamaModelsList" class="ollama-models-list">
-                    <div class="loader-shim">Sincronizando con Ollama...</div>
-                </div>
-                <button type="button" id="sidebarModelsBtn" class="sidebar-model-link" title="Ver catálogo de descarga Qwen">
-                    📥 Descargar modelos Qwen recomendados
-                </button>
-            </div>
+      <div class="sidebar-actions">
+        <button class="btn-new-chat" id="btn-new-chat">
+          <svg viewBox="0 0 24 24" width="18" height="18">
+            <path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+          </svg>
+          <span class="hide-when-collapsed">Nueva sesión</span>
+        </button>
 
-            <!-- Entrada de API Key para Modo Online -->
-            <div class="control-group" id="apiConfig" style="display: none;">
-                <label class="section-label" for="apiKeyInput">CLAVE API (GEMINI / OPENAI)</label>
-                <div class="cyber-input-wrapper">
-                    <input type="password" id="apiKeyInput" class="api-input" placeholder="sk-... o AIzaSy...">
-                </div>
-            </div>
+        <div class="search-box hide-when-collapsed">
+          <svg viewBox="0 0 24 24" width="16" height="16" class="search-icon">
+            <path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+          </svg>
+          <input type="text" id="search-chats" placeholder="Filtrar sesiones..." autocomplete="off">
+        </div>
+      </div>
 
-            <!-- Telemetría y estadísticas -->
-            <div class="sidebar-stats">
-                <div class="stat-card">
-                    <span class="stat-title">MOTOR ACTIVO</span>
-                    <span class="stat-value" id="activeModelLabel">Ollama Local</span>
-                </div>
-                <div class="stat-card">
-                    <span class="stat-title">TAREAS ACTIVAS</span>
-                    <span class="stat-value highlight" id="activeTasks">0</span>
-                </div>
-            </div>
+      <div class="sidebar-section-label hide-when-collapsed">Sesiones Recientes</div>
 
-            <button id="shutdownBtn" class="shutdown-btn">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M18.36 6.64a9 9 0 1 1-12.73 0M12 2v10"/>
-                </svg>
-                Apagar Servidor
+      <nav class="chat-history-list" id="chat-list" aria-label="Historial de sesiones">
+        <!-- Renderizado dinámicamente por app.js -->
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="engine-status-card hide-when-collapsed">
+          <div class="status-indicator">
+            <span class="status-dot" id="engine-status-dot"></span>
+            <span class="status-label" id="engine-status-text">Verificando motor...</span>
+          </div>
+          <button class="mini-btn" id="btn-refresh-models" title="Detectar modelos locales de Ollama">
+            Sync
+          </button>
+        </div>
+
+        <div class="footer-controls">
+          <button class="footer-btn" id="btn-theme-toggle" title="Cambiar tema claro/oscuro">
+            <svg viewBox="0 0 24 24" width="18" height="18">
+              <path fill="currentColor" d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-3.14-9.8c-.44-.06-.9-.1-1.36-.1z"/>
+            </svg>
+            <span class="hide-when-collapsed">Tema</span>
+          </button>
+
+          <button class="footer-btn" id="btn-export-all" title="Respaldar sesiones en JSON">
+            <svg viewBox="0 0 24 24" width="18" height="18">
+              <path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+            </svg>
+            <span class="hide-when-collapsed">Backup</span>
+          </button>
+
+          <button class="footer-btn" id="btn-import-json" title="Importar respaldo JSON">
+            <svg viewBox="0 0 24 24" width="18" height="18">
+              <path fill="currentColor" d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"/>
+            </svg>
+            <span class="hide-when-collapsed">Importar</span>
+          </button>
+          <input type="file" id="file-import-json" accept=".json" hidden>
+
+          <button class="footer-btn shutdown-btn-footer" id="btn-shutdown" title="Apagar Servidor LarIA">
+            <svg viewBox="0 0 24 24" width="18" height="18">
+              <path fill="currentColor" d="M13 3h-2v10h2V3zm4.83 2.17l-1.42 1.42A6.92 6.92 0 0 1 19 12c0 3.87-3.13 7-7 7s-7-3.13-7-7c0-2.05.88-3.9 2.29-5.18L5.87 5.17A8.932 8.932 0 0 0 3 12a9 9 0 1 0 18 0c0-2.74-1.23-5.18-3.17-6.83z"/>
+            </svg>
+            <span class="hide-when-collapsed">Apagar</span>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ÁREA CENTRAL DE CONVERSACIÓN Y OFIMÁTICA -->
+    <main class="main-stage">
+      <!-- CABECERA SUPERIOR -->
+      <header class="top-navbar">
+        <div class="nav-left">
+          <button class="icon-btn mobile-only" id="btn-mobile-menu" aria-label="Abrir menú">
+            <svg viewBox="0 0 24 24" width="20" height="20">
+              <path fill="currentColor" d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h18v2H3v-2z"/>
+            </svg>
+          </button>
+
+          <div class="selector-group">
+            <select id="engine-select" class="pill-select" title="Motor de inferencia">
+              <option value="laria">LarIA Ultra-Fast Engine</option>
+              <option value="ollama">Ollama Direct API</option>
+              <option value="simulator">Simulador Offline</option>
+            </select>
+
+            <select id="model-select" class="pill-select model-pill" title="Modelo activo">
+              <option value="qwen2.5:3b">⭐ qwen2.5:3b (Ultra-Rápido)</option>
+              <option value="qwen2.5:7b">⭐ qwen2.5:7b (Equilibrado)</option>
+              <option value="qwen2.5-coder:7b">⭐ qwen2.5-coder:7b (Código)</option>
+              <option value="qwen2.5:14b">⭐ qwen2.5:14b (Alta Calidad)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="nav-center-hubs">
+          <button class="hub-pill-btn qwen-hub-btn" id="btn-models-hub" title="Catálogo y Descargas de la Familia Qwen">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path d="M12 2a8 8 0 0 0-8 8c0 3.2 1.9 6 4.7 7.3.3.1.5.4.5.7v1.5c0 .6.4 1 1 1h3.6c.6 0 1-.4 1-1V18c0-.3.2-.6.5-.7C18.1 16 20 13.2 20 10a8 8 0 0 0-8-8z"/>
+              <line x1="9" y1="22" x2="15" y2="22"/>
+            </svg>
+            <span>🧠 Modelos Qwen</span>
+          </button>
+
+          <button class="hub-pill-btn templates-hub-btn" id="btn-templates-hub" title="Descargar Paquetes de Plantillas Oficiales">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+              <line x1="12" y1="22.08" x2="12" y2="12"/>
+            </svg>
+            <span>📦 Plantillas</span>
+          </button>
+        </div>
+
+        <div class="nav-right">
+          <div class="telemetry-bar">
+            <span class="telemetry-pill" id="metric-tps" title="Velocidad de generación">0.0 tok/s</span>
+            <span class="telemetry-pill" id="metric-tokens" title="Tokens estimados">0 tokens</span>
+          </div>
+
+          <button class="icon-btn" id="btn-export-md" title="Exportar chat actual a Markdown">
+            <svg viewBox="0 0 24 24" width="19" height="19">
+              <path fill="currentColor" d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
+            </svg>
+          </button>
+
+          <button class="icon-btn" id="btn-clear-chat" title="Limpiar mensajes del chat actual">
+            <svg viewBox="0 0 24 24" width="19" height="19">
+              <path fill="currentColor" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+            </svg>
+          </button>
+
+          <button class="icon-btn" id="btn-toggle-inspector" title="Ajustes de inferencia y modo">
+            <svg viewBox="0 0 24 24" width="20" height="20">
+              <path fill="currentColor" d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- VIEWPORT DE MENSAJES Y RESULTADOS -->
+      <section class="chat-viewport" id="chat-viewport">
+        <!-- PANTALLA DE BIENVENIDA ESTILO GEMINI -->
+        <div class="welcome-screen" id="welcome-screen">
+          <div class="welcome-header">
+            <h1 class="gradient-greeting">Hola, ¿qué construimos hoy?</h1>
+            <p class="welcome-subtitle">LarIA AI v0.7 — Motor ultrarrápido y ligero de generación de documentos Word (.docx) y presentaciones (.pptx). 100% offline y de baja latencia.</p>
+          </div>
+
+          <div class="suggestions-grid">
+            <button class="suggestion-card" data-prompt="Redacta un ensayo académico estructurado con normas APA 7ma edición sobre la evolución de la Inteligencia Artificial y agentes autónomos." data-type="word" data-template="Plantillas APA 7">
+              <div class="card-badge-top">📄 Word • APA 7</div>
+              <div class="card-title">Ensayo Académico APA 7</div>
+              <p class="card-desc">Generar documento Word con jerarquía de títulos, párrafos y citas en formato APA.</p>
             </button>
-        </aside>
 
-        <!-- Contenido principal -->
-        <main class="main-content">
-            <!-- Barra superior -->
-            <header class="top-bar">
-                <div class="top-bar-left">
-                    <span class="system-chip">LarIA v0.7 // ULTRA-FAST ENGINE</span>
-                    <span class="engine-badge" id="engineBadge">OFFLINE READY</span>
-                </div>
-                <div class="top-bar-right">
-                    <button id="modelsHubBtn" class="models-hub-btn" title="Modelos Qwen Recomendados">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M12 2a8 8 0 0 0-8 8c0 3.2 1.9 6 4.7 7.3.3.1.5.4.5.7v1.5c0 .6.4 1 1 1h3.6c.6 0 1-.4 1-1V18c0-.3.2-.6.5-.7C18.1 16 20 13.2 20 10a8 8 0 0 0-8-8z"/>
-                            <line x1="9" y1="22" x2="15" y2="22"/>
-                        </svg>
-                        <span>🧠 Modelos Qwen</span>
-                    </button>
-                    <button id="templatesHubBtn" class="templates-hub-btn" title="Descargar Paquetes de Plantillas">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-                            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
-                            <line x1="12" y1="22.08" x2="12" y2="12"/>
-                        </svg>
-                        <span>📦 Centro de Plantillas</span>
-                    </button>
-                    <button id="modelSettingsBtn" class="model-settings-btn" title="Configurar Modelos">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="3"/>
-                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                        </svg>
-                        <span>Ajustes de Modelo</span>
-                    </button>
-                </div>
-            </header>
+            <button class="suggestion-card" data-prompt="Crea una presentación ejecutiva de 5 diapositivas para un Pitch Deck empresarial sobre una startup de ciberseguridad." data-type="powerpoint">
+              <div class="card-badge-top">📊 PowerPoint</div>
+              <div class="card-title">Pitch Deck Ejecutivo</div>
+              <p class="card-desc">Estructurar presentación en diapositivas con portada, problema, solución y modelo de negocio.</p>
+            </button>
 
-            <!-- Panel Flotante de Selección de Modelos -->
-            <div class="model-settings-panel" id="modelSettingsPanel">
-                <div class="model-settings-header">
-                    <h3>⚡ Arquitectura de Modelos</h3>
-                    <button id="closeModelSettings" class="close-panel-btn">&times;</button>
-                </div>
-                <div class="model-setting">
-                    <label for="chatModelSelect">💬 Modelo de Conversación y Chat:</label>
-                    <select id="chatModelSelect" class="model-select"></select>
-                </div>
-                <div class="model-setting">
-                    <label for="docModelSelect">📄 Modelo de Documentos y Presentaciones:</label>
-                    <select id="docModelSelect" class="model-select"></select>
-                </div>
-                <div class="model-quick-banner">
-                    <div class="quick-banner-title">🌟 Ecosistema Recomendado: Qwen 2.5</div>
-                    <p class="quick-banner-desc">Optimizado para modelos Qwen (7B, 14B, Coder, GGUF) por su alta precisión en español.</p>
-                    <button type="button" id="openModelsFromSettingsBtn" class="quick-banner-btn">
-                        Ver Enlaces y Comandos de Descarga →
-                    </button>
-                </div>
-                <p class="panel-tip">💡 Los modelos se detectan automáticamente desde tu instalación de Ollama local.</p>
-            </div>
+            <button class="suggestion-card" data-prompt="Elabora un plan de negocios corporativo completo con análisis FODA, estrategia comercial y proyecciones financieras." data-type="word">
+              <div class="card-badge-top">💼 Word • Negocios</div>
+              <div class="card-title">Plan de Negocios Corporativo</div>
+              <p class="card-desc">Redacción exhaustiva en formato Word listo para revisión y comités directivos.</p>
+            </button>
 
-            <!-- Contenedor del Chat y Resultados -->
-            <div class="chat-container" id="chatContainer">
-                <div class="welcome-hero">
-                    <div class="hero-glow"></div>
-                    <div class="hero-icon">⚡</div>
-                    <h2>LarIA NEURAL OFFICE v0.7</h2>
-                    <p class="hero-desc">Generador ultrarrápido y ligero de documentos Word (.docx) y presentaciones PowerPoint (.pptx). Motor offline e inteligencia local de alta velocidad.</p>
-                    <div class="hero-chips">
-                        <span class="chip">📄 Word Ultrarrápido</span>
-                        <span class="chip">📊 PowerPoint Dinámico</span>
-                        <span class="chip">🔒 100% Offline</span>
-                        <span class="chip">🧠 Motor Ollama</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Barra de Opciones y Entrada de Datos -->
-            <div class="input-container">
-                <div class="options-bar">
-                    <div class="option-pill">
-                        <label for="documentType" class="pill-label">Formato:</label>
-                        <select id="documentType" class="select-input">
-                            <option value="">Chat General</option>
-                            <option value="word">Documento Word (.docx)</option>
-                            <option value="powerpoint">Presentación (.pptx)</option>
-                        </select>
-                    </div>
-
-                    <div class="option-pill" id="templatePill">
-                        <label for="templateSelect" class="pill-label">Plantilla:</label>
-                        <select id="templateSelect" class="select-input">
-                            <option value="">Plantilla por defecto</option>
-                        </select>
-                    </div>
-
-                    <label class="file-upload-btn" title="Cargar archivo para analizar o convertir">
-                        <input type="file" id="fileInput" class="file-input" accept=".pdf,.docx,.pptx,.xlsx,.xls,.csv,.txt,.md,.html,.jpg,.jpeg,.png,.webp">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
-                        </svg>
-                        <span class="file-btn-text">Adjuntar Documento</span>
-                    </label>
-                </div>
-
-                <!-- Previsualización de archivo cargado -->
-                <div id="filePreview" class="file-preview-card" style="display: none;">
-                    <div class="file-preview-content">
-                        <div class="file-preview-icon">📎</div>
-                        <div class="file-meta">
-                            <span id="fileName" class="file-name">archivo.pdf</span>
-                            <span class="file-hint" id="fileActionHint">Listo para ser ingerido y procesado</span>
-                        </div>
-                    </div>
-                    <button id="removeFileBtn" class="remove-file-btn" title="Quitar archivo">&times;</button>
-                </div>
-
-                <!-- Barra de entrada de texto -->
-                <div class="input-bar">
-                    <textarea 
-                        id="messageInput" 
-                        placeholder="Escribe el tema de tu documento, presentación o pregunta..."
-                        rows="1"
-                    ></textarea>
-                    <button id="sendBtn" class="send-btn" title="Ejecutar instrucción">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                            <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
-                        </svg>
-                    </button>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <!-- Modal Centro de Descarga de Plantillas -->
-    <div class="templates-modal-backdrop" id="templatesModalBackdrop">
-        <div class="templates-modal" id="templatesModal">
-            <div class="templates-modal-header">
-                <div class="modal-title-group">
-                    <div class="modal-title-top">
-                        <span class="modal-badge">HUB DE RECURSOS</span>
-                        <span class="modal-badge-count" id="packsCountBadge">11 Paquetes Disponibles</span>
-                    </div>
-                    <h3>📦 Centro de Descarga de Plantillas</h3>
-                    <p class="templates-modal-desc">
-                        Descarga paquetes de plantillas temáticas (.zip) con un solo clic. Para usarlas en LarIA, descomprime los archivos <code>.dotx</code> en <code>templates/word/</code> y los <code>.potx</code> en <code>templates/powerpoint/</code>.
-                    </p>
-                </div>
-                <button id="closeTemplatesModal" class="close-panel-btn" title="Cerrar">&times;</button>
-            </div>
-            <div class="templates-modal-body">
-                <div class="templates-grid" id="templatesGrid">
-                    <!-- Inyectado dinámicamente -->
-                </div>
-            </div>
+            <button class="suggestion-card" data-prompt="Explica cómo configurar y optimizar un modelo local de la familia Qwen 2.5 en Ollama para generación ofimática de máxima velocidad." data-type="">
+              <div class="card-badge-top">💬 Chat Técnico</div>
+              <div class="card-title">Optimización Qwen Local</div>
+              <p class="card-desc">Ajuste de hiperparámetros (num_ctx, temperature) y rendimiento en CPU y GPU.</p>
+            </button>
+          </div>
         </div>
-    </div>
 
-    <!-- Modal Centro de Modelos Qwen (Ollama, Hugging Face, Fine-Tuning & GGUF) -->
-    <div class="templates-modal-backdrop" id="modelsModalBackdrop">
-        <div class="templates-modal models-modal" id="modelsModal">
-            <div class="templates-modal-header">
-                <div class="modal-title-group">
-                    <div class="modal-title-top">
-                        <span class="modal-badge">FAMILIA QWEN 2.5 RECOMENDADA</span>
-                        <span class="modal-badge-count">100% Offline & Open-Weight</span>
-                    </div>
-                    <h3>🧠 Catálogo Oficial y Descargas: Familia Qwen</h3>
-                    <p class="templates-modal-desc">
-                        LarIA está optimizado para los modelos de la familia <strong>Qwen 2.5</strong> (Alibaba Cloud) por su excelente redacción en español, formato estructurado Markdown/OpenXML y bajo consumo de VRAM. Descárgalos directamente con Ollama, Hugging Face oficial o versiones GGUF con fine-tuning.
-                    </p>
-                </div>
-                <button id="closeModelsModal" class="close-panel-btn" title="Cerrar">&times;</button>
+        <!-- LISTA DINÁMICA DE MENSAJES -->
+        <div class="messages-container" id="messages-list" aria-live="polite"></div>
+      </section>
+
+      <!-- COMPOSITOR DE PROMPTS Y OFIMÁTICA -->
+      <footer class="composer-zone">
+        <div class="composer-box">
+          <!-- BARRA DE SELECCIÓN DE FORMATO Y PLANTILLAS -->
+          <div class="format-bar">
+            <div class="format-pill-group">
+              <span class="format-label">Formato:</span>
+              <select id="doc-type-select" class="format-select">
+                <option value="">💬 Chat General</option>
+                <option value="word">📄 Documento Word (.docx)</option>
+                <option value="powerpoint">📊 Presentación PowerPoint (.pptx)</option>
+              </select>
             </div>
 
-            <!-- Navegación de pestañas -->
-            <div class="models-nav-tabs">
-                <button class="model-nav-tab active" data-tab="tab-ollama">
-                    <span>🦙 Ollama (1-Clic Local)</span>
-                </button>
-                <button class="model-nav-tab" data-tab="tab-huggingface">
-                    <span>🤗 Hugging Face Oficial</span>
-                </button>
-                <button class="model-nav-tab" data-tab="tab-finetuning">
-                    <span>⚡ Fine-Tuning & GGUF</span>
-                </button>
+            <div class="template-pill-group hidden" id="template-wrapper">
+              <span class="format-label">Plantilla:</span>
+              <select id="template-select" class="template-select">
+                <option value="">Plantilla por defecto</option>
+              </select>
             </div>
+          </div>
 
-            <div class="templates-modal-body">
-                <!-- Pestaña 1: Ollama -->
-                <div class="model-tab-pane active" id="tab-ollama">
-                    <div class="models-cards-grid">
-                        <!-- Card 1: Qwen 2.5 7B -->
-                        <div class="model-card featured">
-                            <div class="model-card-badge">⭐ RECOMENDADO PRINCIPAL</div>
-                            <div class="model-card-header">
-                                <h4>Qwen 2.5 (7B Instruct)</h4>
-                                <span class="model-size-tag">~4.7 GB</span>
-                            </div>
-                            <p class="model-card-desc">El punto ideal entre velocidad y calidad. Excelente capacidad de redacción académica, formal y empresarial en español.</p>
-                            <div class="model-code-box">
-                                <code>ollama run qwen2.5:7b</code>
-                                <button class="copy-cmd-btn" data-copy="ollama run qwen2.5:7b" title="Copiar comando">📋</button>
-                            </div>
-                            <div class="model-card-actions">
-                                <a href="https://ollama.com/library/qwen2.5:7b" target="_blank" rel="noopener noreferrer" class="model-link-btn">
-                                    Ver en Ollama Library ↗
-                                </a>
-                            </div>
-                        </div>
+          <!-- BARRA DE ARCHIVOS ADJUNTOS LOCALES -->
+          <div class="attachment-bar hidden" id="attachment-bar"></div>
 
-                        <!-- Card 2: Qwen 2.5 Coder 7B -->
-                        <div class="model-card">
-                            <div class="model-card-badge specialized">💻 CÓDIGO Y ESTRUCTURA</div>
-                            <div class="model-card-header">
-                                <h4>Qwen 2.5 Coder (7B)</h4>
-                                <span class="model-size-tag">~4.7 GB</span>
-                            </div>
-                            <p class="model-card-desc">Especializado en generación técnica, estructuración XML/OpenXML, tablas complejas y análisis de datos.</p>
-                            <div class="model-code-box">
-                                <code>ollama run qwen2.5-coder:7b</code>
-                                <button class="copy-cmd-btn" data-copy="ollama run qwen2.5-coder:7b" title="Copiar comando">📋</button>
-                            </div>
-                            <div class="model-card-actions">
-                                <a href="https://ollama.com/library/qwen2.5-coder:7b" target="_blank" rel="noopener noreferrer" class="model-link-btn">
-                                    Ver en Ollama Library ↗
-                                </a>
-                            </div>
-                        </div>
+          <div class="composer-input-row">
+            <button class="icon-btn attach-btn" id="btn-attach" title="Adjuntar documento o código (.pdf, .docx, .pptx, .xlsx, .txt, .md, .py, .js, imágenes)">
+              <svg viewBox="0 0 24 24" width="20" height="20">
+                <path fill="currentColor" d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5a2.5 2.5 0 0 1 5 0v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H10v9.5a2.5 2.5 0 0 0 5 0V5c0-2.21-1.79-4-4-4S7 2.79 7 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1.5z"/>
+              </svg>
+            </button>
+            <input type="file" id="file-input" multiple accept=".pdf,.docx,.pptx,.xlsx,.xls,.csv,.txt,.md,.py,.js,.ts,.json,.html,.css,.c,.cpp,.h,.sh,.jpg,.jpeg,.png,.webp" hidden>
 
-                        <!-- Card 3: Qwen 2.5 14B -->
-                        <div class="model-card">
-                            <div class="model-card-badge quality">💎 ALTA FIDELIDAD</div>
-                            <div class="model-card-header">
-                                <h4>Qwen 2.5 (14B Instruct)</h4>
-                                <span class="model-size-tag">~9.0 GB</span>
-                            </div>
-                            <p class="model-card-desc">Máxima profundidad de redacción, análisis exhaustivo y razonamiento de alto nivel. Recomendado para GPUs con 12GB+ VRAM o 16GB+ RAM.</p>
-                            <div class="model-code-box">
-                                <code>ollama run qwen2.5:14b</code>
-                                <button class="copy-cmd-btn" data-copy="ollama run qwen2.5:14b" title="Copiar comando">📋</button>
-                            </div>
-                            <div class="model-card-actions">
-                                <a href="https://ollama.com/library/qwen2.5:14b" target="_blank" rel="noopener noreferrer" class="model-link-btn">
-                                    Ver en Ollama Library ↗
-                                </a>
-                            </div>
-                        </div>
+            <textarea
+              id="prompt-input"
+              rows="1"
+              placeholder="Escribe el tema de tu documento, presentación o pregunta..."
+            ></textarea>
 
-                        <!-- Card 4: Qwen 2.5 3B / 1.5B -->
-                        <div class="model-card">
-                            <div class="model-card-badge lightweight">⚡ ULTRA LIGERO (CPU)</div>
-                            <div class="model-card-header">
-                                <h4>Qwen 2.5 (3B / 1.5B)</h4>
-                                <span class="model-size-tag">~1.0 - 2.0 GB</span>
-                            </div>
-                            <p class="model-card-desc">Diseñado para ejecución rápida en laptops o procesadores sin aceleración gráfica dedicada. Consumo mínimo de memoria.</p>
-                            <div class="model-code-box">
-                                <code>ollama run qwen2.5:3b</code>
-                                <button class="copy-cmd-btn" data-copy="ollama run qwen2.5:3b" title="Copiar comando">📋</button>
-                            </div>
-                            <div class="model-card-actions">
-                                <a href="https://ollama.com/library/qwen2.5:3b" target="_blank" rel="noopener noreferrer" class="model-link-btn">
-                                    Ver en Ollama Library ↗
-                                </a>
-                            </div>
-                        </div>
+            <button class="action-btn stop-btn hidden" id="btn-stop" title="Detener generación (Esc)">
+              <svg viewBox="0 0 24 24" width="18" height="18">
+                <rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/>
+              </svg>
+            </button>
 
-                        <!-- Card 5: Qwen 2.5 32B -->
-                        <div class="model-card">
-                            <div class="model-card-badge premium">🚀 NIVEL ENTERPRISE</div>
-                            <div class="model-card-header">
-                                <h4>Qwen 2.5 (32B Instruct)</h4>
-                                <span class="model-size-tag">~20 GB</span>
-                            </div>
-                            <p class="model-card-desc">Rendimiento parejo a modelos comerciales cerrados. Pensado para workstations o servidores con múltiples GPUs.</p>
-                            <div class="model-code-box">
-                                <code>ollama run qwen2.5:32b</code>
-                                <button class="copy-cmd-btn" data-copy="ollama run qwen2.5:32b" title="Copiar comando">📋</button>
-                            </div>
-                            <div class="model-card-actions">
-                                <a href="https://ollama.com/library/qwen2.5:32b" target="_blank" rel="noopener noreferrer" class="model-link-btn">
-                                    Ver en Ollama Library ↗
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <button class="action-btn send-btn" id="btn-send" title="Generar o Enviar (Enter)">
+              <svg viewBox="0 0 24 24" width="18" height="18">
+                <path fill="currentColor" d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+              </svg>
+            </button>
+          </div>
 
-                <!-- Pestaña 2: Hugging Face Oficial -->
-                <div class="model-tab-pane" id="tab-huggingface">
-                    <div class="models-cards-grid">
-                        <div class="model-card">
-                            <div class="model-card-badge">OFICIAL SAFETENSORS</div>
-                            <div class="model-card-header">
-                                <h4>Qwen2.5-7B-Instruct</h4>
-                                <span class="model-size-tag">Hugging Face</span>
-                            </div>
-                            <p class="model-card-desc">Pesos oficiales en formato SafeTensors / PyTorch / Transformers. Ideal para vLLM, TGI, SGLang o pipelines en Python.</p>
-                            <div class="model-card-actions">
-                                <a href="https://huggingface.co/Qwen/Qwen2.5-7B-Instruct" target="_blank" rel="noopener noreferrer" class="model-link-btn primary">
-                                    Abrir en Hugging Face 🤗 ↗
-                                </a>
-                            </div>
-                        </div>
-
-                        <div class="model-card">
-                            <div class="model-card-badge">OFICIAL SAFETENSORS</div>
-                            <div class="model-card-header">
-                                <h4>Qwen2.5-14B-Instruct</h4>
-                                <span class="model-size-tag">Hugging Face</span>
-                            </div>
-                            <p class="model-card-desc">Pesos oficiales del modelo 14B con ventana de contexto de hasta 128k tokens y soporte multilingüe completo.</p>
-                            <div class="model-card-actions">
-                                <a href="https://huggingface.co/Qwen/Qwen2.5-14B-Instruct" target="_blank" rel="noopener noreferrer" class="model-link-btn primary">
-                                    Abrir en Hugging Face 🤗 ↗
-                                </a>
-                            </div>
-                        </div>
-
-                        <div class="model-card">
-                            <div class="model-card-badge">OFICIAL CODER</div>
-                            <div class="model-card-header">
-                                <h4>Qwen2.5-Coder-7B-Instruct</h4>
-                                <span class="model-size-tag">Hugging Face</span>
-                            </div>
-                            <p class="model-card-desc">Repositorio oficial con la arquitectura optimizada para generación de código, sintaxis técnica y documentación formal.</p>
-                            <div class="model-card-actions">
-                                <a href="https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct" target="_blank" rel="noopener noreferrer" class="model-link-btn primary">
-                                    Abrir en Hugging Face 🤗 ↗
-                                </a>
-                            </div>
-                        </div>
-
-                        <div class="model-card">
-                            <div class="model-card-badge">OFICIAL ENTERPRISE</div>
-                            <div class="model-card-header">
-                                <h4>Qwen2.5-32B-Instruct</h4>
-                                <span class="model-size-tag">Hugging Face</span>
-                            </div>
-                            <p class="model-card-desc">Modelo insignia open-weight de 32 mil millones de parámetros de Alibaba Cloud.</p>
-                            <div class="model-card-actions">
-                                <a href="https://huggingface.co/Qwen/Qwen2.5-32B-Instruct" target="_blank" rel="noopener noreferrer" class="model-link-btn primary">
-                                    Abrir en Hugging Face 🤗 ↗
-                                </a>
-                            </div>
-                        </div>
-
-                        <div class="model-card">
-                            <div class="model-card-badge">COLECCIÓN COMPLETA</div>
-                            <div class="model-card-header">
-                                <h4>Colección Oficial Qwen 2.5</h4>
-                                <span class="model-size-tag">0.5B a 72B</span>
-                            </div>
-                            <p class="model-card-desc">Explora la colección completa oficial en Hugging Face: modelos base, instruct, matemáticos y multimodales.</p>
-                            <div class="model-card-actions">
-                                <a href="https://huggingface.co/collections/Qwen/qwen25-66e2f12258ff0ad1c9119c81" target="_blank" rel="noopener noreferrer" class="model-link-btn primary">
-                                    Ver Colección Completa 🤗 ↗
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Pestaña 3: Fine-Tuning & GGUF -->
-                <div class="model-tab-pane" id="tab-finetuning">
-                    <div class="models-cards-grid">
-                        <div class="model-card featured">
-                            <div class="model-card-badge">GGUF // CUANTIZADO</div>
-                            <div class="model-card-header">
-                                <h4>bartowski / Qwen2.5-7B-Instruct-GGUF</h4>
-                                <span class="model-size-tag">Q4_K_M, Q5_K_M, Q8_0</span>
-                            </div>
-                            <p class="model-card-desc">Las cuantizaciones GGUF más populares y estables del ecosistema. Listas para usar en llama.cpp, Ollama (Modelfile) y LM Studio.</p>
-                            <div class="model-card-actions">
-                                <a href="https://huggingface.co/bartowski/Qwen2.5-7B-Instruct-GGUF" target="_blank" rel="noopener noreferrer" class="model-link-btn">
-                                    Descargar GGUF en Hugging Face ↗
-                                </a>
-                            </div>
-                        </div>
-
-                        <div class="model-card">
-                            <div class="model-card-badge">UNSLOTH // FAST-INFERENCE</div>
-                            <div class="model-card-header">
-                                <h4>unsloth / Qwen2.5-7B-Instruct-GGUF</h4>
-                                <span class="model-size-tag">Optimizados</span>
-                            </div>
-                            <p class="model-card-desc">Cuantizaciones dinámicas preparadas con Unsloth para inferencia ultra-rápida y menor uso de memoria de contexto.</p>
-                            <div class="model-card-actions">
-                                <a href="https://huggingface.co/unsloth/Qwen2.5-7B-Instruct-GGUF" target="_blank" rel="noopener noreferrer" class="model-link-btn">
-                                    Descargar Unsloth GGUF ↗
-                                </a>
-                            </div>
-                        </div>
-
-                        <div class="model-card">
-                            <div class="model-card-badge">GGUF CODER</div>
-                            <div class="model-card-header">
-                                <h4>bartowski / Qwen2.5-Coder-7B-GGUF</h4>
-                                <span class="model-size-tag">Q4_K_M a Q8_0</span>
-                            </div>
-                            <p class="model-card-desc">Versión cuantizada en formato GGUF del modelo especializado de programación y análisis técnico.</p>
-                            <div class="model-card-actions">
-                                <a href="https://huggingface.co/bartowski/Qwen2.5-Coder-7B-Instruct-GGUF" target="_blank" rel="noopener noreferrer" class="model-link-btn">
-                                    Descargar Coder GGUF ↗
-                                </a>
-                            </div>
-                        </div>
-
-                        <div class="model-card">
-                            <div class="model-card-badge">FINE-TUNING COMUNITARIO</div>
-                            <div class="model-card-header">
-                                <h4>TobiasLogic / qwen-2.5-coder-Uncensored</h4>
-                                <span class="model-size-tag">Fine-Tuned GGUF</span>
-                            </div>
-                            <p class="model-card-desc">Adaptación afinada y desalineada orientada a tareas técnicas avanzadas y análisis sin restricciones.</p>
-                            <div class="model-code-box">
-                                <code>ollama run hf.co/TobiasLogic/qwen-2.5-coder-Uncensored:Q4_K_M</code>
-                                <button class="copy-cmd-btn" data-copy="ollama run hf.co/TobiasLogic/qwen-2.5-coder-Uncensored:Q4_K_M" title="Copiar comando">📋</button>
-                            </div>
-                            <div class="model-card-actions">
-                                <a href="https://huggingface.co/TobiasLogic/qwen-2.5-coder-Uncensored" target="_blank" rel="noopener noreferrer" class="model-link-btn">
-                                    Ver en Hugging Face ↗
-                                </a>
-                            </div>
-                        </div>
-
-                        <div class="model-card">
-                            <div class="model-card-badge">CATÁLOGO ABIERTO</div>
-                            <div class="model-card-header">
-                                <h4>Modelos Fine-Tuning de la Comunidad</h4>
-                                <span class="model-size-tag">Hugging Face Hub</span>
-                            </div>
-                            <p class="model-card-desc">Explora cientos de variantes afinadas por la comunidad (médicas, legales, académicas y creativas) basadas en Qwen 2.5.</p>
-                            <div class="model-card-actions">
-                                <a href="https://huggingface.co/models?search=qwen2.5-instruct" target="_blank" rel="noopener noreferrer" class="model-link-btn primary">
-                                    Explorar Modelos Fine-Tuned 🤗 ↗
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+          <div class="composer-meta">
+            <span id="char-counter">0 caracteres</span>
+            <span class="meta-separator">•</span>
+            <span id="composer-mode-hint">100% Offline • Word &amp; PPTX Ultrarrápido</span>
+          </div>
         </div>
-    </div>
+      </footer>
+    </main>
 
-    <script src="script.js"></script>
+    <!-- PANEL DERECHO DE HIPERPARÁMETROS Y AJUSTES -->
+    <aside class="inspector-panel collapsed" id="inspector-panel">
+      <div class="inspector-header">
+        <h2>Ajustes de Inferencia</h2>
+        <button class="icon-btn" id="btn-close-inspector" aria-label="Cerrar panel">
+          <svg viewBox="0 0 24 24" width="18" height="18">
+            <path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="inspector-body">
+        <div class="control-group">
+          <label for="mode-select">Modo de Operación</label>
+          <select id="mode-select" class="text-input">
+            <option value="local">⚡ 100% Offline (Ollama Local)</option>
+            <option value="online">🌐 Híbrido Cloud (Gemini / OpenAI API)</option>
+          </select>
+        </div>
+
+        <div class="control-group hidden" id="api-key-group">
+          <label for="input-api-key">Clave API (Gemini / OpenAI)</label>
+          <input type="password" id="input-api-key" class="text-input" placeholder="sk-... o AIzaSy...">
+          <small class="control-hint">Se almacena únicamente de manera local en tu navegador.</small>
+        </div>
+
+        <div class="control-group">
+          <label for="input-endpoint">Endpoint Local Ollama (URL)</label>
+          <input type="text" id="input-endpoint" class="text-input" value="http://localhost:11434">
+          <small class="control-hint">Por defecto: http://localhost:11434</small>
+        </div>
+
+        <div class="control-group">
+          <label for="input-system-prompt">System Prompt</label>
+          <textarea id="input-system-prompt" rows="3" class="text-input">Eres LarIA AI, un asistente ofimático ágil, veloz y técnico. Responde de forma concisa, estructurada y profesional en español.</textarea>
+        </div>
+
+        <div class="control-group">
+          <div class="slider-header">
+            <label for="param-temp">Temperature</label>
+            <span class="slider-val" id="val-temp">0.7</span>
+          </div>
+          <input type="range" id="param-temp" min="0" max="2" step="0.05" value="0.7">
+        </div>
+
+        <div class="control-group">
+          <div class="slider-header">
+            <label for="param-top-p">Top P</label>
+            <span class="slider-val" id="val-top-p">0.9</span>
+          </div>
+          <input type="range" id="param-top-p" min="0.05" max="1" step="0.05" value="0.9">
+        </div>
+
+        <div class="control-group">
+          <div class="slider-header">
+            <label for="param-top-k">Top K</label>
+            <span class="slider-val" id="val-top-k">40</span>
+          </div>
+          <input type="range" id="param-top-k" min="1" max="100" step="1" value="40">
+        </div>
+
+        <div class="control-group">
+          <div class="slider-header">
+            <label for="param-penalty">Repeat Penalty</label>
+            <span class="slider-val" id="val-penalty">1.1</span>
+          </div>
+          <input type="range" id="param-penalty" min="1.0" max="1.5" step="0.05" value="1.1">
+        </div>
+
+        <div class="control-group">
+          <div class="slider-header">
+            <label for="param-ctx">Ventana de Contexto (num_ctx)</label>
+            <span class="slider-val" id="val-ctx">4096</span>
+          </div>
+          <input type="range" id="param-ctx" min="512" max="16384" step="512" value="4096">
+        </div>
+
+        <div class="inspector-actions">
+          <button class="btn-secondary" id="btn-reset-params">Restaurar</button>
+          <button class="btn-primary" id="btn-save-params">Guardar Ajustes</button>
+        </div>
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- MODAL: CENTRO DE DESCARGA DE PLANTILLAS -->
+  <div class="templates-modal-backdrop" id="templatesModalBackdrop">
+    <div class="templates-modal" id="templatesModal">
+      <div class="templates-modal-header">
+        <div class="modal-title-group">
+          <div class="modal-title-top">
+            <span class="modal-badge">HUB DE RECURSOS</span>
+            <span class="modal-badge-count" id="packsCountBadge">11 Paquetes Disponibles</span>
+          </div>
+          <h3>📦 Centro de Descarga de Plantillas Oficiales</h3>
+          <p class="templates-modal-desc">
+            Descarga paquetes de plantillas temáticas (.zip) con un solo clic. Para usarlas en LarIA, descomprime los archivos <code>.dotx</code> en <code>templates/word/</code> y los <code>.potx</code> en <code>templates/powerpoint/</code>.
+          </p>
+        </div>
+        <button id="closeTemplatesModal" class="close-panel-btn" title="Cerrar">&times;</button>
+      </div>
+      <div class="templates-modal-body">
+        <div class="templates-grid" id="templatesGrid">
+          <!-- Inyectado dinámicamente -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CENTRO Y CATÁLOGO DE MODELOS QWEN 2.5 -->
+  <div class="templates-modal-backdrop" id="modelsModalBackdrop">
+    <div class="templates-modal models-modal" id="modelsModal">
+      <div class="templates-modal-header">
+        <div class="modal-title-group">
+          <div class="modal-title-top">
+            <span class="modal-badge">FAMILIA QWEN 2.5 RECOMENDADA</span>
+            <span class="modal-badge-count">100% Offline &amp; Open-Weight</span>
+          </div>
+          <h3>🧠 Catálogo Oficial y Descargas: Familia Qwen</h3>
+          <p class="templates-modal-desc">
+            LarIA está optimizado para los modelos de la familia <strong>Qwen 2.5</strong> (Alibaba Cloud) por su excelente redacción en español, formato estructurado Markdown/OpenXML y bajo consumo de VRAM. Descárgalos directamente con Ollama, Hugging Face oficial o versiones GGUF con fine-tuning.
+          </p>
+        </div>
+        <button id="closeModelsModal" class="close-panel-btn" title="Cerrar">&times;</button>
+      </div>
+
+      <!-- Navegación de pestañas -->
+      <div class="models-nav-tabs">
+        <button class="model-nav-tab active" data-tab="tab-ollama">
+          <span>🦙 Ollama (1-Clic Local)</span>
+        </button>
+        <button class="model-nav-tab" data-tab="tab-huggingface">
+          <span>🤗 Hugging Face Oficial</span>
+        </button>
+        <button class="model-nav-tab" data-tab="tab-finetuning">
+          <span>⚡ Fine-Tuning &amp; GGUF</span>
+        </button>
+      </div>
+
+      <div class="templates-modal-body">
+        <!-- Pestaña 1: Ollama -->
+        <div class="model-tab-pane active" id="tab-ollama">
+          <div class="models-cards-grid">
+            <div class="model-card featured">
+              <div class="model-card-badge">⭐ RECOMENDADO PRINCIPAL</div>
+              <div class="model-card-header">
+                <h4>Qwen 2.5 (7B Instruct)</h4>
+                <span class="model-size-tag">~4.7 GB</span>
+              </div>
+              <p class="model-card-desc">El punto ideal entre velocidad y calidad. Excelente capacidad de redacción académica, formal y empresarial en español.</p>
+              <div class="model-code-box">
+                <code>ollama run qwen2.5:7b</code>
+                <button class="copy-cmd-btn" data-copy="ollama run qwen2.5:7b" title="Copiar comando">📋</button>
+              </div>
+              <div class="model-card-actions">
+                <a href="https://ollama.com/library/qwen2.5:7b" target="_blank" rel="noopener noreferrer" class="model-link-btn">
+                  Ver en Ollama Library ↗
+                </a>
+              </div>
+            </div>
+
+            <div class="model-card">
+              <div class="model-card-badge specialized">💻 CÓDIGO Y ESTRUCTURA</div>
+              <div class="model-card-header">
+                <h4>Qwen 2.5 Coder (7B)</h4>
+                <span class="model-size-tag">~4.7 GB</span>
+              </div>
+              <p class="model-card-desc">Especializado en generación técnica, estructuración XML/OpenXML, tablas complejas y análisis de datos.</p>
+              <div class="model-code-box">
+                <code>ollama run qwen2.5-coder:7b</code>
+                <button class="copy-cmd-btn" data-copy="ollama run qwen2.5-coder:7b" title="Copiar comando">📋</button>
+              </div>
+              <div class="model-card-actions">
+                <a href="https://ollama.com/library/qwen2.5-coder:7b" target="_blank" rel="noopener noreferrer" class="model-link-btn">
+                  Ver en Ollama Library ↗
+                </a>
+              </div>
+            </div>
+
+            <div class="model-card">
+              <div class="model-card-badge quality">💎 ALTA FIDELIDAD</div>
+              <div class="model-card-header">
+                <h4>Qwen 2.5 (14B Instruct)</h4>
+                <span class="model-size-tag">~9.0 GB</span>
+              </div>
+              <p class="model-card-desc">Máxima profundidad de redacción, análisis exhaustivo y razonamiento de alto nivel. Recomendado para GPUs con 12GB+ VRAM o 16GB+ RAM.</p>
+              <div class="model-code-box">
+                <code>ollama run qwen2.5:14b</code>
+                <button class="copy-cmd-btn" data-copy="ollama run qwen2.5:14b" title="Copiar comando">📋</button>
+              </div>
+              <div class="model-card-actions">
+                <a href="https://ollama.com/library/qwen2.5:14b" target="_blank" rel="noopener noreferrer" class="model-link-btn">
+                  Ver en Ollama Library ↗
+                </a>
+              </div>
+            </div>
+
+            <div class="model-card">
+              <div class="model-card-badge lightweight">⚡ ULTRA LIGERO (CPU)</div>
+              <div class="model-card-header">
+                <h4>Qwen 2.5 (3B / 1.5B)</h4>
+                <span class="model-size-tag">~1.0 - 2.0 GB</span>
+              </div>
+              <p class="model-card-desc">Diseñado para ejecución rápida en laptops o procesadores sin aceleración gráfica dedicada. Consumo mínimo de memoria.</p>
+              <div class="model-code-box">
+                <code>ollama run qwen2.5:3b</code>
+                <button class="copy-cmd-btn" data-copy="ollama run qwen2.5:3b" title="Copiar comando">📋</button>
+              </div>
+              <div class="model-card-actions">
+                <a href="https://ollama.com/library/qwen2.5:3b" target="_blank" rel="noopener noreferrer" class="model-link-btn">
+                  Ver en Ollama Library ↗
+                </a>
+              </div>
+            </div>
+
+            <div class="model-card">
+              <div class="model-card-badge premium">🚀 NIVEL ENTERPRISE</div>
+              <div class="model-card-header">
+                <h4>Qwen 2.5 (32B Instruct)</h4>
+                <span class="model-size-tag">~20 GB</span>
+              </div>
+              <p class="model-card-desc">Rendimiento parejo a modelos comerciales cerrados. Pensado para workstations o servidores con múltiples GPUs.</p>
+              <div class="model-code-box">
+                <code>ollama run qwen2.5:32b</code>
+                <button class="copy-cmd-btn" data-copy="ollama run qwen2.5:32b" title="Copiar comando">📋</button>
+              </div>
+              <div class="model-card-actions">
+                <a href="https://ollama.com/library/qwen2.5:32b" target="_blank" rel="noopener noreferrer" class="model-link-btn">
+                  Ver en Ollama Library ↗
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pestaña 2: Hugging Face Oficial -->
+        <div class="model-tab-pane" id="tab-huggingface">
+          <div class="models-cards-grid">
+            <div class="model-card">
+              <div class="model-card-badge">OFICIAL SAFETENSORS</div>
+              <div class="model-card-header">
+                <h4>Qwen2.5-7B-Instruct</h4>
+                <span class="model-size-tag">Hugging Face</span>
+              </div>
+              <p class="model-card-desc">Pesos oficiales en formato SafeTensors / PyTorch / Transformers. Ideal para vLLM, TGI, SGLang o pipelines en Python.</p>
+              <div class="model-card-actions">
+                <a href="https://huggingface.co/Qwen/Qwen2.5-7B-Instruct" target="_blank" rel="noopener noreferrer" class="model-link-btn primary">
+                  Abrir en Hugging Face 🤗 ↗
+                </a>
+              </div>
+            </div>
+
+            <div class="model-card">
+              <div class="model-card-badge">OFICIAL SAFETENSORS</div>
+              <div class="model-card-header">
+                <h4>Qwen2.5-14B-Instruct</h4>
+                <span class="model-size-tag">Hugging Face</span>
+              </div>
+              <p class="model-card-desc">Pesos oficiales del modelo 14B con ventana de contexto de hasta 128k tokens y soporte multilingüe completo.</p>
+              <div class="model-card-actions">
+                <a href="https://huggingface.co/Qwen/Qwen2.5-14B-Instruct" target="_blank" rel="noopener noreferrer" class="model-link-btn primary">
+                  Abrir en Hugging Face 🤗 ↗
+                </a>
+              </div>
+            </div>
+
+            <div class="model-card">
+              <div class="model-card-badge">OFICIAL CODER</div>
+              <div class="model-card-header">
+                <h4>Qwen2.5-Coder-7B-Instruct</h4>
+                <span class="model-size-tag">Hugging Face</span>
+              </div>
+              <p class="model-card-desc">Repositorio oficial con la arquitectura optimizada para generación de código, sintaxis técnica y documentación formal.</p>
+              <div class="model-card-actions">
+                <a href="https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct" target="_blank" rel="noopener noreferrer" class="model-link-btn primary">
+                  Abrir en Hugging Face 🤗 ↗
+                </a>
+              </div>
+            </div>
+
+            <div class="model-card">
+              <div class="model-card-badge">OFICIAL ENTERPRISE</div>
+              <div class="model-card-header">
+                <h4>Qwen2.5-32B-Instruct</h4>
+                <span class="model-size-tag">Hugging Face</span>
+              </div>
+              <p class="model-card-desc">Modelo insignia open-weight de 32 mil millones de parámetros de Alibaba Cloud.</p>
+              <div class="model-card-actions">
+                <a href="https://huggingface.co/Qwen/Qwen2.5-32B-Instruct" target="_blank" rel="noopener noreferrer" class="model-link-btn primary">
+                  Abrir en Hugging Face 🤗 ↗
+                </a>
+              </div>
+            </div>
+
+            <div class="model-card">
+              <div class="model-card-badge">COLECCIÓN COMPLETA</div>
+              <div class="model-card-header">
+                <h4>Colección Oficial Qwen 2.5</h4>
+                <span class="model-size-tag">0.5B a 72B</span>
+              </div>
+              <p class="model-card-desc">Explora la colección completa oficial en Hugging Face: modelos base, instruct, matemáticos y multimodales.</p>
+              <div class="model-card-actions">
+                <a href="https://huggingface.co/collections/Qwen/qwen25-66e2f12258ff0ad1c9119c81" target="_blank" rel="noopener noreferrer" class="model-link-btn primary">
+                  Ver Colección Completa 🤗 ↗
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pestaña 3: Fine-Tuning & GGUF -->
+        <div class="model-tab-pane" id="tab-finetuning">
+          <div class="models-cards-grid">
+            <div class="model-card featured">
+              <div class="model-card-badge">GGUF // CUANTIZADO</div>
+              <div class="model-card-header">
+                <h4>bartowski / Qwen2.5-7B-Instruct-GGUF</h4>
+                <span class="model-size-tag">Q4_K_M, Q5_K_M, Q8_0</span>
+              </div>
+              <p class="model-card-desc">Las cuantizaciones GGUF más populares y estables del ecosistema. Listas para usar en llama.cpp, Ollama (Modelfile) y LM Studio.</p>
+              <div class="model-card-actions">
+                <a href="https://huggingface.co/bartowski/Qwen2.5-7B-Instruct-GGUF" target="_blank" rel="noopener noreferrer" class="model-link-btn">
+                  Descargar GGUF en Hugging Face ↗
+                </a>
+              </div>
+            </div>
+
+            <div class="model-card">
+              <div class="model-card-badge">UNSLOTH // FAST-INFERENCE</div>
+              <div class="model-card-header">
+                <h4>unsloth / Qwen2.5-7B-Instruct-GGUF</h4>
+                <span class="model-size-tag">Optimizados</span>
+              </div>
+              <p class="model-card-desc">Cuantizaciones dinámicas preparadas con Unsloth para inferencia ultra-rápida y menor uso de memoria de contexto.</p>
+              <div class="model-card-actions">
+                <a href="https://huggingface.co/unsloth/Qwen2.5-7B-Instruct-GGUF" target="_blank" rel="noopener noreferrer" class="model-link-btn">
+                  Descargar Unsloth GGUF ↗
+                </a>
+              </div>
+            </div>
+
+            <div class="model-card">
+              <div class="model-card-badge">GGUF CODER</div>
+              <div class="model-card-header">
+                <h4>bartowski / Qwen2.5-Coder-7B-GGUF</h4>
+                <span class="model-size-tag">Q4_K_M a Q8_0</span>
+              </div>
+              <p class="model-card-desc">Versión cuantizada en formato GGUF del modelo especializado de programación y análisis técnico.</p>
+              <div class="model-card-actions">
+                <a href="https://huggingface.co/bartowski/Qwen2.5-Coder-7B-Instruct-GGUF" target="_blank" rel="noopener noreferrer" class="model-link-btn">
+                  Descargar Coder GGUF ↗
+                </a>
+              </div>
+            </div>
+
+            <div class="model-card">
+              <div class="model-card-badge">FINE-TUNING COMUNITARIO</div>
+              <div class="model-card-header">
+                <h4>TobiasLogic / qwen-2.5-coder-Uncensored</h4>
+                <span class="model-size-tag">Fine-Tuned GGUF</span>
+              </div>
+              <p class="model-card-desc">Adaptación afinada y desalineada orientada a tareas técnicas avanzadas y análisis sin restricciones.</p>
+              <div class="model-code-box">
+                <code>ollama run hf.co/TobiasLogic/qwen-2.5-coder-Uncensored:Q4_K_M</code>
+                <button class="copy-cmd-btn" data-copy="ollama run hf.co/TobiasLogic/qwen-2.5-coder-Uncensored:Q4_K_M" title="Copiar comando">📋</button>
+              </div>
+              <div class="model-card-actions">
+                <a href="https://huggingface.co/TobiasLogic/qwen-2.5-coder-Uncensored" target="_blank" rel="noopener noreferrer" class="model-link-btn">
+                  Ver en Hugging Face ↗
+                </a>
+              </div>
+            </div>
+
+            <div class="model-card">
+              <div class="model-card-badge">CATÁLOGO ABIERTO</div>
+              <div class="model-card-header">
+                <h4>Modelos Fine-Tuning de la Comunidad</h4>
+                <span class="model-size-tag">Hugging Face Hub</span>
+              </div>
+              <p class="model-card-desc">Explora cientos de variantes afinadas por la comunidad (médicas, legales, académicas y creativas) basadas en Qwen 2.5.</p>
+              <div class="model-card-actions">
+                <a href="https://huggingface.co/models?search=qwen2.5-instruct" target="_blank" rel="noopener noreferrer" class="model-link-btn primary">
+                  Explorar Modelos Fine-Tuned 🤗 ↗
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
 </body>
 </html>

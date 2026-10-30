@@ -25,6 +25,7 @@ CONTEXTO
 # IDEs and Tools
 .vscode/
 *.code-workspace
+.obsidian/
 
 # App output and specific ignores
 output/
