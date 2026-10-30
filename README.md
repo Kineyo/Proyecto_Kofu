@@ -57,9 +57,12 @@ Mientras que Kofu está pensado como una suite exhaustiva y profunda para docume
 - **Sistema Operativo**: Windows 10/11, Linux (Ubuntu, Debian, Fedora, Arch) o macOS (x64 / Apple Silicon).
 - **Python**: Versión 3.10 o superior (recomendado 3.10 a 3.12).
 - **Ollama**: Motor local de IA descargable desde [ollama.com](https://ollama.com).
-  - *Modelos recomendados*:
-    - `ollama pull llama3.2` (óptimo para velocidad y respuesta inmediata)
-    - `ollama pull qwen2.5` o `ollama pull mistral`
+  - *Familia de Modelos Recomendada (Qwen 2.5)*:
+    - **Ultra-Rápido y Ligero (Ideal para LarIA)**: `ollama run qwen2.5:3b` o `ollama run qwen2.5:1.5b`
+    - **Recomendado Equilibrado**: `ollama run qwen2.5:7b` (Excelente redacción y gramática en español)
+    - **Especializado en Código y Estructura**: `ollama run qwen2.5-coder:7b`
+    - **Alta Fidelidad y Detalle**: `ollama run qwen2.5:14b`
+    - *(La interfaz de LarIA incluye el Hub de Modelos con enlaces a Ollama, Hugging Face oficial y versiones GGUF con fine-tuning)*.
 - **Ofimática**: **NO** requiere tener Microsoft Office ni LibreOffice instalado en tu sistema para crear y descargar los archivos.
 
 ---

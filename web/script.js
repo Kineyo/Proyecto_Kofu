@@ -102,9 +102,54 @@ function setupEventListeners() {
             if (e.target === templatesModalBackdrop) closeTemplatesHub();
         });
     }
+
+    // Centro y Catálogo de Modelos Qwen (Hub)
+    const modelsHubBtn = document.getElementById('modelsHubBtn');
+    const openModelsFromSettingsBtn = document.getElementById('openModelsFromSettingsBtn');
+    const sidebarModelsBtn = document.getElementById('sidebarModelsBtn');
+    const closeModelsModal = document.getElementById('closeModelsModal');
+    const modelsModalBackdrop = document.getElementById('modelsModalBackdrop');
+
+    if (modelsHubBtn) {
+        modelsHubBtn.addEventListener('click', openModelsHub);
+    }
+    if (openModelsFromSettingsBtn) {
+        openModelsFromSettingsBtn.addEventListener('click', () => {
+            document.getElementById('modelSettingsPanel').classList.remove('open');
+            openModelsHub();
+        });
+    }
+    if (sidebarModelsBtn) {
+        sidebarModelsBtn.addEventListener('click', openModelsHub);
+    }
+    if (closeModelsModal) {
+        closeModelsModal.addEventListener('click', closeModelsHub);
+    }
+    if (modelsModalBackdrop) {
+        modelsModalBackdrop.addEventListener('click', (e) => {
+            if (e.target === modelsModalBackdrop) closeModelsHub();
+        });
+    }
+
+    // Pestañas del Modal de Modelos
+    document.querySelectorAll('.model-nav-tab').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tabId = btn.getAttribute('data-tab');
+            switchModelTab(tabId);
+        });
+    });
+
+    // Botones de copia de comando
+    initCopyButtons();
+
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && templatesModalBackdrop && templatesModalBackdrop.classList.contains('open')) {
-            closeTemplatesHub();
+        if (e.key === 'Escape') {
+            if (templatesModalBackdrop && templatesModalBackdrop.classList.contains('open')) {
+                closeTemplatesHub();
+            }
+            if (modelsModalBackdrop && modelsModalBackdrop.classList.contains('open')) {
+                closeModelsHub();
+            }
         }
     });
 
@@ -190,6 +235,20 @@ function updateActiveModelBadge() {
     }
 }
 
+function findPreferredModel(models) {
+    if (!models || models.length === 0) return '';
+    // Preferencia jerárquica a la familia Qwen
+    const qwenModel = models.find(m => m.toLowerCase().includes('qwen2.5:7b'))
+        || models.find(m => m.toLowerCase().includes('qwen2.5-coder:7b'))
+        || models.find(m => m.toLowerCase().includes('qwen2.5-coder'))
+        || models.find(m => m.toLowerCase().includes('qwen2.5:14b'))
+        || models.find(m => m.toLowerCase().includes('qwen2.5:3b'))
+        || models.find(m => m.toLowerCase().includes('qwen2.5:1.5b'))
+        || models.find(m => m.toLowerCase().includes('qwen2.5'))
+        || models.find(m => m.toLowerCase().includes('qwen'));
+    return qwenModel || models[0];
+}
+
 async function loadOllamaModels() {
     const listContainer = document.getElementById('ollamaModelsList');
     listContainer.innerHTML = '<div class="loader-shim">Consultando Ollama...</div>';
@@ -201,23 +260,26 @@ async function loadOllamaModels() {
         availableModels = data.models || [];
 
         if (availableModels.length === 0) {
-            listContainer.innerHTML = '<div class="loader-shim">No hay modelos instalados. Ejecuta: ollama pull llama3.2</div>';
+            listContainer.innerHTML = '<div class="loader-shim">No hay modelos instalados. Ejecuta: ollama run qwen2.5:7b</div>';
         } else {
             listContainer.innerHTML = '';
             availableModels.forEach(m => {
                 const tag = document.createElement('div');
                 tag.className = 'model-tag';
+                if (m.toLowerCase().includes('qwen')) {
+                    tag.classList.add('qwen-tag');
+                }
                 tag.textContent = m;
                 tag.title = m;
                 listContainer.appendChild(tag);
             });
 
             if (!chatModel || !availableModels.includes(chatModel)) {
-                chatModel = availableModels[0];
+                chatModel = findPreferredModel(availableModels);
                 localStorage.setItem('laria_chat_model', chatModel);
             }
             if (!docModel || !availableModels.includes(docModel)) {
-                docModel = availableModels[0];
+                docModel = findPreferredModel(availableModels);
                 localStorage.setItem('laria_doc_model', docModel);
             }
         }
@@ -236,13 +298,23 @@ function populateModelSelects() {
     chatSel.innerHTML = '';
     docSel.innerHTML = '';
 
-    const models = availableModels.length > 0 ? availableModels : ['llama3.2:latest', 'llama3:latest', 'mistral:latest'];
+    const models = availableModels.length > 0 
+        ? availableModels 
+        : ['qwen2.5:7b', 'qwen2.5:14b', 'qwen2.5-coder:7b', 'qwen2.5:3b', 'qwen2.5:1.5b', 'llama3.2:latest'];
     models.forEach(m => {
         const opt1 = document.createElement('option');
         opt1.value = m;
-        opt1.textContent = m;
+        opt1.textContent = m.toLowerCase().includes('qwen') ? `⭐ ${m} (Recomendado)` : m;
         if (m === chatModel) opt1.selected = true;
         chatSel.appendChild(opt1);
+
+        const opt2 = document.createElement('option');
+        opt2.value = m;
+        opt2.textContent = m.toLowerCase().includes('qwen') ? `⭐ ${m} (Recomendado)` : m;
+        if (m === docModel) opt2.selected = true;
+        docSel.appendChild(opt2);
+    });
+}
 
         const opt2 = document.createElement('option');
         opt2.value = m;
@@ -590,3 +662,62 @@ async function sendChatMessage(message) {
     const data = await resp.json();
     return data.response;
 }
+
+// --------------------------------------------------------------------------
+// Centro de Descarga de Modelos Qwen (Hub de Modelos)
+// --------------------------------------------------------------------------
+function openModelsHub() {
+    const modalBackdrop = document.getElementById('modelsModalBackdrop');
+    if (!modalBackdrop) return;
+    modalBackdrop.classList.add('open');
+}
+
+function closeModelsHub() {
+    const modalBackdrop = document.getElementById('modelsModalBackdrop');
+    if (!modalBackdrop) return;
+    modalBackdrop.classList.remove('open');
+}
+
+function switchModelTab(tabId) {
+    document.querySelectorAll('.model-nav-tab').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-tab') === tabId);
+    });
+    document.querySelectorAll('.model-tab-pane').forEach(pane => {
+        pane.classList.toggle('active', pane.id === tabId);
+    });
+}
+
+function initCopyButtons() {
+    document.querySelectorAll('.copy-cmd-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const textToCopy = btn.getAttribute('data-copy');
+            if (!textToCopy) return;
+
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(textToCopy);
+                } else {
+                    const tempInput = document.createElement('textarea');
+                    tempInput.value = textToCopy;
+                    document.body.appendChild(tempInput);
+                    tempInput.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(tempInput);
+                }
+
+                const originalText = btn.textContent;
+                btn.textContent = '✓ Copiado';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.classList.remove('copied');
+                }, 2000);
+            } catch (_) {
+                btn.textContent = 'Error';
+                setTimeout(() => { btn.textContent = '📋'; }, 2000);
+            }
+        });
+    });
+}
+

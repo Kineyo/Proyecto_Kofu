@@ -54,6 +54,9 @@
                 <div id="ollamaModelsList" class="ollama-models-list">
                     <div class="loader-shim">Sincronizando con Ollama...</div>
                 </div>
+                <button type="button" id="sidebarModelsBtn" class="sidebar-model-link" title="Ver catálogo de descarga Qwen">
+                    📥 Descargar modelos Qwen recomendados
+                </button>
             </div>
 
             <!-- Entrada de API Key para Modo Online -->
@@ -93,6 +96,13 @@
                     <span class="engine-badge" id="engineBadge">OFFLINE READY</span>
                 </div>
                 <div class="top-bar-right">
+                    <button id="modelsHubBtn" class="models-hub-btn" title="Modelos Qwen Recomendados">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2a8 8 0 0 0-8 8c0 3.2 1.9 6 4.7 7.3.3.1.5.4.5.7v1.5c0 .6.4 1 1 1h3.6c.6 0 1-.4 1-1V18c0-.3.2-.6.5-.7C18.1 16 20 13.2 20 10a8 8 0 0 0-8-8z"/>
+                            <line x1="9" y1="22" x2="15" y2="22"/>
+                        </svg>
+                        <span>🧠 Modelos Qwen</span>
+                    </button>
                     <button id="templatesHubBtn" class="templates-hub-btn" title="Descargar Paquetes de Plantillas">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
@@ -124,6 +134,13 @@
                 <div class="model-setting">
                     <label for="docModelSelect">📄 Modelo de Documentos y Presentaciones:</label>
                     <select id="docModelSelect" class="model-select"></select>
+                </div>
+                <div class="model-quick-banner">
+                    <div class="quick-banner-title">🌟 Ecosistema Recomendado: Qwen 2.5</div>
+                    <p class="quick-banner-desc">Optimizado para modelos Qwen (7B, 14B, Coder, GGUF) por su alta precisión en español.</p>
+                    <button type="button" id="openModelsFromSettingsBtn" class="quick-banner-btn">
+                        Ver Enlaces y Comandos de Descarga →
+                    </button>
                 </div>
                 <p class="panel-tip">💡 Los modelos se detectan automáticamente desde tu instalación de Ollama local.</p>
             </div>
@@ -220,6 +237,294 @@
             <div class="templates-modal-body">
                 <div class="templates-grid" id="templatesGrid">
                     <!-- Inyectado dinámicamente -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Centro de Modelos Qwen (Ollama, Hugging Face, Fine-Tuning & GGUF) -->
+    <div class="templates-modal-backdrop" id="modelsModalBackdrop">
+        <div class="templates-modal models-modal" id="modelsModal">
+            <div class="templates-modal-header">
+                <div class="modal-title-group">
+                    <div class="modal-title-top">
+                        <span class="modal-badge">FAMILIA QWEN 2.5 RECOMENDADA</span>
+                        <span class="modal-badge-count">100% Offline & Open-Weight</span>
+                    </div>
+                    <h3>🧠 Catálogo Oficial y Descargas: Familia Qwen</h3>
+                    <p class="templates-modal-desc">
+                        LarIA está optimizado para los modelos de la familia <strong>Qwen 2.5</strong> (Alibaba Cloud) por su excelente redacción en español, formato estructurado Markdown/OpenXML y bajo consumo de VRAM. Descárgalos directamente con Ollama, Hugging Face oficial o versiones GGUF con fine-tuning.
+                    </p>
+                </div>
+                <button id="closeModelsModal" class="close-panel-btn" title="Cerrar">&times;</button>
+            </div>
+
+            <!-- Navegación de pestañas -->
+            <div class="models-nav-tabs">
+                <button class="model-nav-tab active" data-tab="tab-ollama">
+                    <span>🦙 Ollama (1-Clic Local)</span>
+                </button>
+                <button class="model-nav-tab" data-tab="tab-huggingface">
+                    <span>🤗 Hugging Face Oficial</span>
+                </button>
+                <button class="model-nav-tab" data-tab="tab-finetuning">
+                    <span>⚡ Fine-Tuning & GGUF</span>
+                </button>
+            </div>
+
+            <div class="templates-modal-body">
+                <!-- Pestaña 1: Ollama -->
+                <div class="model-tab-pane active" id="tab-ollama">
+                    <div class="models-cards-grid">
+                        <!-- Card 1: Qwen 2.5 7B -->
+                        <div class="model-card featured">
+                            <div class="model-card-badge">⭐ RECOMENDADO PRINCIPAL</div>
+                            <div class="model-card-header">
+                                <h4>Qwen 2.5 (7B Instruct)</h4>
+                                <span class="model-size-tag">~4.7 GB</span>
+                            </div>
+                            <p class="model-card-desc">El punto ideal entre velocidad y calidad. Excelente capacidad de redacción académica, formal y empresarial en español.</p>
+                            <div class="model-code-box">
+                                <code>ollama run qwen2.5:7b</code>
+                                <button class="copy-cmd-btn" data-copy="ollama run qwen2.5:7b" title="Copiar comando">📋</button>
+                            </div>
+                            <div class="model-card-actions">
+                                <a href="https://ollama.com/library/qwen2.5:7b" target="_blank" rel="noopener noreferrer" class="model-link-btn">
+                                    Ver en Ollama Library ↗
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Card 2: Qwen 2.5 Coder 7B -->
+                        <div class="model-card">
+                            <div class="model-card-badge specialized">💻 CÓDIGO Y ESTRUCTURA</div>
+                            <div class="model-card-header">
+                                <h4>Qwen 2.5 Coder (7B)</h4>
+                                <span class="model-size-tag">~4.7 GB</span>
+                            </div>
+                            <p class="model-card-desc">Especializado en generación técnica, estructuración XML/OpenXML, tablas complejas y análisis de datos.</p>
+                            <div class="model-code-box">
+                                <code>ollama run qwen2.5-coder:7b</code>
+                                <button class="copy-cmd-btn" data-copy="ollama run qwen2.5-coder:7b" title="Copiar comando">📋</button>
+                            </div>
+                            <div class="model-card-actions">
+                                <a href="https://ollama.com/library/qwen2.5-coder:7b" target="_blank" rel="noopener noreferrer" class="model-link-btn">
+                                    Ver en Ollama Library ↗
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Card 3: Qwen 2.5 14B -->
+                        <div class="model-card">
+                            <div class="model-card-badge quality">💎 ALTA FIDELIDAD</div>
+                            <div class="model-card-header">
+                                <h4>Qwen 2.5 (14B Instruct)</h4>
+                                <span class="model-size-tag">~9.0 GB</span>
+                            </div>
+                            <p class="model-card-desc">Máxima profundidad de redacción, análisis exhaustivo y razonamiento de alto nivel. Recomendado para GPUs con 12GB+ VRAM o 16GB+ RAM.</p>
+                            <div class="model-code-box">
+                                <code>ollama run qwen2.5:14b</code>
+                                <button class="copy-cmd-btn" data-copy="ollama run qwen2.5:14b" title="Copiar comando">📋</button>
+                            </div>
+                            <div class="model-card-actions">
+                                <a href="https://ollama.com/library/qwen2.5:14b" target="_blank" rel="noopener noreferrer" class="model-link-btn">
+                                    Ver en Ollama Library ↗
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Card 4: Qwen 2.5 3B / 1.5B -->
+                        <div class="model-card">
+                            <div class="model-card-badge lightweight">⚡ ULTRA LIGERO (CPU)</div>
+                            <div class="model-card-header">
+                                <h4>Qwen 2.5 (3B / 1.5B)</h4>
+                                <span class="model-size-tag">~1.0 - 2.0 GB</span>
+                            </div>
+                            <p class="model-card-desc">Diseñado para ejecución rápida en laptops o procesadores sin aceleración gráfica dedicada. Consumo mínimo de memoria.</p>
+                            <div class="model-code-box">
+                                <code>ollama run qwen2.5:3b</code>
+                                <button class="copy-cmd-btn" data-copy="ollama run qwen2.5:3b" title="Copiar comando">📋</button>
+                            </div>
+                            <div class="model-card-actions">
+                                <a href="https://ollama.com/library/qwen2.5:3b" target="_blank" rel="noopener noreferrer" class="model-link-btn">
+                                    Ver en Ollama Library ↗
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Card 5: Qwen 2.5 32B -->
+                        <div class="model-card">
+                            <div class="model-card-badge premium">🚀 NIVEL ENTERPRISE</div>
+                            <div class="model-card-header">
+                                <h4>Qwen 2.5 (32B Instruct)</h4>
+                                <span class="model-size-tag">~20 GB</span>
+                            </div>
+                            <p class="model-card-desc">Rendimiento parejo a modelos comerciales cerrados. Pensado para workstations o servidores con múltiples GPUs.</p>
+                            <div class="model-code-box">
+                                <code>ollama run qwen2.5:32b</code>
+                                <button class="copy-cmd-btn" data-copy="ollama run qwen2.5:32b" title="Copiar comando">📋</button>
+                            </div>
+                            <div class="model-card-actions">
+                                <a href="https://ollama.com/library/qwen2.5:32b" target="_blank" rel="noopener noreferrer" class="model-link-btn">
+                                    Ver en Ollama Library ↗
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pestaña 2: Hugging Face Oficial -->
+                <div class="model-tab-pane" id="tab-huggingface">
+                    <div class="models-cards-grid">
+                        <div class="model-card">
+                            <div class="model-card-badge">OFICIAL SAFETENSORS</div>
+                            <div class="model-card-header">
+                                <h4>Qwen2.5-7B-Instruct</h4>
+                                <span class="model-size-tag">Hugging Face</span>
+                            </div>
+                            <p class="model-card-desc">Pesos oficiales en formato SafeTensors / PyTorch / Transformers. Ideal para vLLM, TGI, SGLang o pipelines en Python.</p>
+                            <div class="model-card-actions">
+                                <a href="https://huggingface.co/Qwen/Qwen2.5-7B-Instruct" target="_blank" rel="noopener noreferrer" class="model-link-btn primary">
+                                    Abrir en Hugging Face 🤗 ↗
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="model-card">
+                            <div class="model-card-badge">OFICIAL SAFETENSORS</div>
+                            <div class="model-card-header">
+                                <h4>Qwen2.5-14B-Instruct</h4>
+                                <span class="model-size-tag">Hugging Face</span>
+                            </div>
+                            <p class="model-card-desc">Pesos oficiales del modelo 14B con ventana de contexto de hasta 128k tokens y soporte multilingüe completo.</p>
+                            <div class="model-card-actions">
+                                <a href="https://huggingface.co/Qwen/Qwen2.5-14B-Instruct" target="_blank" rel="noopener noreferrer" class="model-link-btn primary">
+                                    Abrir en Hugging Face 🤗 ↗
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="model-card">
+                            <div class="model-card-badge">OFICIAL CODER</div>
+                            <div class="model-card-header">
+                                <h4>Qwen2.5-Coder-7B-Instruct</h4>
+                                <span class="model-size-tag">Hugging Face</span>
+                            </div>
+                            <p class="model-card-desc">Repositorio oficial con la arquitectura optimizada para generación de código, sintaxis técnica y documentación formal.</p>
+                            <div class="model-card-actions">
+                                <a href="https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct" target="_blank" rel="noopener noreferrer" class="model-link-btn primary">
+                                    Abrir en Hugging Face 🤗 ↗
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="model-card">
+                            <div class="model-card-badge">OFICIAL ENTERPRISE</div>
+                            <div class="model-card-header">
+                                <h4>Qwen2.5-32B-Instruct</h4>
+                                <span class="model-size-tag">Hugging Face</span>
+                            </div>
+                            <p class="model-card-desc">Modelo insignia open-weight de 32 mil millones de parámetros de Alibaba Cloud.</p>
+                            <div class="model-card-actions">
+                                <a href="https://huggingface.co/Qwen/Qwen2.5-32B-Instruct" target="_blank" rel="noopener noreferrer" class="model-link-btn primary">
+                                    Abrir en Hugging Face 🤗 ↗
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="model-card">
+                            <div class="model-card-badge">COLECCIÓN COMPLETA</div>
+                            <div class="model-card-header">
+                                <h4>Colección Oficial Qwen 2.5</h4>
+                                <span class="model-size-tag">0.5B a 72B</span>
+                            </div>
+                            <p class="model-card-desc">Explora la colección completa oficial en Hugging Face: modelos base, instruct, matemáticos y multimodales.</p>
+                            <div class="model-card-actions">
+                                <a href="https://huggingface.co/collections/Qwen/qwen25-66e2f12258ff0ad1c9119c81" target="_blank" rel="noopener noreferrer" class="model-link-btn primary">
+                                    Ver Colección Completa 🤗 ↗
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pestaña 3: Fine-Tuning & GGUF -->
+                <div class="model-tab-pane" id="tab-finetuning">
+                    <div class="models-cards-grid">
+                        <div class="model-card featured">
+                            <div class="model-card-badge">GGUF // CUANTIZADO</div>
+                            <div class="model-card-header">
+                                <h4>bartowski / Qwen2.5-7B-Instruct-GGUF</h4>
+                                <span class="model-size-tag">Q4_K_M, Q5_K_M, Q8_0</span>
+                            </div>
+                            <p class="model-card-desc">Las cuantizaciones GGUF más populares y estables del ecosistema. Listas para usar en llama.cpp, Ollama (Modelfile) y LM Studio.</p>
+                            <div class="model-card-actions">
+                                <a href="https://huggingface.co/bartowski/Qwen2.5-7B-Instruct-GGUF" target="_blank" rel="noopener noreferrer" class="model-link-btn">
+                                    Descargar GGUF en Hugging Face ↗
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="model-card">
+                            <div class="model-card-badge">UNSLOTH // FAST-INFERENCE</div>
+                            <div class="model-card-header">
+                                <h4>unsloth / Qwen2.5-7B-Instruct-GGUF</h4>
+                                <span class="model-size-tag">Optimizados</span>
+                            </div>
+                            <p class="model-card-desc">Cuantizaciones dinámicas preparadas con Unsloth para inferencia ultra-rápida y menor uso de memoria de contexto.</p>
+                            <div class="model-card-actions">
+                                <a href="https://huggingface.co/unsloth/Qwen2.5-7B-Instruct-GGUF" target="_blank" rel="noopener noreferrer" class="model-link-btn">
+                                    Descargar Unsloth GGUF ↗
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="model-card">
+                            <div class="model-card-badge">GGUF CODER</div>
+                            <div class="model-card-header">
+                                <h4>bartowski / Qwen2.5-Coder-7B-GGUF</h4>
+                                <span class="model-size-tag">Q4_K_M a Q8_0</span>
+                            </div>
+                            <p class="model-card-desc">Versión cuantizada en formato GGUF del modelo especializado de programación y análisis técnico.</p>
+                            <div class="model-card-actions">
+                                <a href="https://huggingface.co/bartowski/Qwen2.5-Coder-7B-Instruct-GGUF" target="_blank" rel="noopener noreferrer" class="model-link-btn">
+                                    Descargar Coder GGUF ↗
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="model-card">
+                            <div class="model-card-badge">FINE-TUNING COMUNITARIO</div>
+                            <div class="model-card-header">
+                                <h4>TobiasLogic / qwen-2.5-coder-Uncensored</h4>
+                                <span class="model-size-tag">Fine-Tuned GGUF</span>
+                            </div>
+                            <p class="model-card-desc">Adaptación afinada y desalineada orientada a tareas técnicas avanzadas y análisis sin restricciones.</p>
+                            <div class="model-code-box">
+                                <code>ollama run hf.co/TobiasLogic/qwen-2.5-coder-Uncensored:Q4_K_M</code>
+                                <button class="copy-cmd-btn" data-copy="ollama run hf.co/TobiasLogic/qwen-2.5-coder-Uncensored:Q4_K_M" title="Copiar comando">📋</button>
+                            </div>
+                            <div class="model-card-actions">
+                                <a href="https://huggingface.co/TobiasLogic/qwen-2.5-coder-Uncensored" target="_blank" rel="noopener noreferrer" class="model-link-btn">
+                                    Ver en Hugging Face ↗
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="model-card">
+                            <div class="model-card-badge">CATÁLOGO ABIERTO</div>
+                            <div class="model-card-header">
+                                <h4>Modelos Fine-Tuning de la Comunidad</h4>
+                                <span class="model-size-tag">Hugging Face Hub</span>
+                            </div>
+                            <p class="model-card-desc">Explora cientos de variantes afinadas por la comunidad (médicas, legales, académicas y creativas) basadas en Qwen 2.5.</p>
+                            <div class="model-card-actions">
+                                <a href="https://huggingface.co/models?search=qwen2.5-instruct" target="_blank" rel="noopener noreferrer" class="model-link-btn primary">
+                                    Explorar Modelos Fine-Tuned 🤗 ↗
+                                </a>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
