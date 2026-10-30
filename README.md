@@ -1,7 +1,7 @@
-# LarIA v0.7 // Ultra-Fast Neural Office Engine
+# LarIA v0.7
 
 <p align="center">
-  <img src="assets/banner laria.jpeg" alt="Banner LarIA" width="100%" style="border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.5);">
+  <img src="assets/banner laria.jpeg" alt="Banner LarIA" width="80%" style="border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.5);">
 </p>
 
 <p align="center">
