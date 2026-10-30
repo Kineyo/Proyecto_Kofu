@@ -80,11 +80,11 @@ if %errorlevel% neq 0 (
         echo.
         echo Opciones de Modelo:
         echo 1. Descargar/Usar llama3:latest (Recomendado)
-        echo 2. Descargar/Usar gemma4:latest (Alternativa)
+        echo 2. Descargar/Usar gemma2:latest (Alternativa)
         echo 3. Continuar con mis modelos actuales
         set /p MCHOICE="Elige una opcion (1-3): "
         if "!MCHOICE!"=="1" ollama pull llama3:latest
-        if "!MCHOICE!"=="2" ollama pull gemma4:latest
+        if "!MCHOICE!"=="2" ollama pull gemma2:latest
     )
 )
 

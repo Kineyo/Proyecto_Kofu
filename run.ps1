@@ -85,11 +85,11 @@ if (-not $OllamaBin) {
         Write-Host ""
         Write-Host "Opciones de Modelo:" -ForegroundColor Cyan
         Write-Host "1. Descargar/Usar llama3:latest (Recomendado)"
-        Write-Host "2. Descargar/Usar gemma4:latest (Alternativa)"
+        Write-Host "2. Descargar/Usar gemma2:latest (Alternativa)"
         Write-Host "3. Continuar con mis modelos actuales"
         $Response = Read-Host "Elige una opción (1-3)"
         if ($Response -eq "1") { ollama pull llama3:latest }
-        elseif ($Response -eq "2") { ollama pull gemma4:latest }
+        elseif ($Response -eq "2") { ollama pull gemma2:latest }
     }
 }
 

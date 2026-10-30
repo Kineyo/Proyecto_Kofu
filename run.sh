@@ -46,13 +46,13 @@ if command -v ollama >/dev/null 2>&1; then
         echo ""
         echo "¿Qué modelo deseas usar/descargar para LarIA?"
         echo "1) Descargar/Usar llama3:latest (Recomendado)"
-        echo "2) Descargar/Usar gemma4:latest (Alternativa)"
+        echo "2) Descargar/Usar gemma2:latest (Alternativa)"
         echo "3) Continuar con mis modelos instalados"
         read -p "> " choice
         if [ "$choice" == "1" ]; then
             ollama pull llama3:latest
         elif [ "$choice" == "2" ]; then
-            ollama pull gemma4:latest
+            ollama pull gemma2:latest
         fi
     fi
 else
