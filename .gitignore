@@ -1,0 +1,10 @@
+# Build y artefactos
+build/
+output/
+Archivos/
+archivos/
+env/
+.env
+__pycache__/
+*.pyc
+.DS_Store
