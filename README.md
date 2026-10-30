@@ -43,9 +43,12 @@ Utiliza el motor local **Ollama** para el razonamiento e integración contextual
 - **Sistema Operativo**: Windows 10/11, Linux (Ubuntu, Debian, Fedora, Arch) o macOS (x64 / Apple Silicon).
 - **Python**: Versión 3.10 o superior (recomendado 3.10 a 3.12).
 - **Ollama**: Motor para modelos locales. Descárgalo desde [ollama.com](https://ollama.com).
-  - *Modelos recomendados*:
-    - Para chat rápido y portátil: `ollama pull llama3.2` o `ollama pull qwen2.5`
-    - Para documentos extensos y presentaciones: `ollama pull llama3` o `ollama pull mistral`
+  - *Familia de Modelos Recomendada (Qwen 2.5)*:
+    - **Recomendado Principal (Equilibrado)**: `ollama run qwen2.5:7b` (Alta precisión en español y estructura)
+    - **Documentos Técnicos y Código**: `ollama run qwen2.5-coder:7b` (OpenXML, tablas y Markdown estricto)
+    - **Máxima Profundidad y Razonamiento**: `ollama run qwen2.5:14b` (Calidad académica superior)
+    - **Laptops y Modo Ligero (Bajo Consumo)**: `ollama run qwen2.5:3b` o `ollama run qwen2.5:1.5b`
+    - *(En la interfaz web dispones del Hub de Modelos con enlaces a Ollama, Hugging Face oficial y versiones GGUF con fine-tuning)*.
 - **Ofimática (Office / LibreOffice)**:
   - **Para crear y exportar**: **NO** es necesario tener Microsoft Office ni LibreOffice instalado. Kofu construye los archivos nativamente mediante bibliotecas de OpenXML.
   - **Para visualizarlos**: Cualquier visor compatible con `.docx` y `.pptx`.

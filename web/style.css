@@ -1199,3 +1199,336 @@ body {
     box-shadow: 0 0 16px rgba(0, 245, 212, 0.5);
     transform: scale(1.02);
 }
+
+/* ==========================================================================
+   Modelos Qwen Hub & Descargas (Ollama, HF, Fine-Tuning)
+   ========================================================================== */
+
+.models-hub-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, rgba(121, 40, 202, 0.22), rgba(0, 112, 243, 0.25));
+    border: 1px solid rgba(121, 40, 202, 0.45);
+    color: #a78bfa;
+    padding: 8px 16px;
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.models-hub-btn:hover {
+    background: linear-gradient(135deg, rgba(121, 40, 202, 0.35), rgba(0, 112, 243, 0.4));
+    box-shadow: 0 0 16px rgba(121, 40, 202, 0.45);
+    transform: translateY(-1px);
+    color: #ffffff;
+}
+
+.sidebar-model-link {
+    display: inline-block;
+    background: none;
+    border: none;
+    color: #7928ca;
+    font-size: 11px;
+    font-weight: 600;
+    text-align: left;
+    padding: 6px 4px 2px 4px;
+    cursor: pointer;
+    transition: color 0.2s ease;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.sidebar-model-link:hover {
+    color: var(--accent-cyan);
+}
+
+.model-tag.qwen-tag {
+    border-color: rgba(121, 40, 202, 0.55);
+    background: rgba(121, 40, 202, 0.12);
+    color: #c4b5fd;
+    font-weight: 600;
+}
+
+.model-tag.qwen-tag::before {
+    content: "⭐ ";
+    font-size: 9px;
+}
+
+.model-quick-banner {
+    background: linear-gradient(135deg, rgba(121, 40, 202, 0.12), rgba(0, 245, 212, 0.08));
+    border: 1px solid rgba(121, 40, 202, 0.35);
+    border-radius: var(--radius-md);
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.quick-banner-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: #a78bfa;
+}
+
+.quick-banner-desc {
+    font-size: 11px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+    margin: 0;
+}
+
+.quick-banner-btn {
+    background: rgba(121, 40, 202, 0.2);
+    border: 1px solid rgba(121, 40, 202, 0.4);
+    color: #ddd6fe;
+    padding: 6px 10px;
+    border-radius: var(--radius-sm);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 4px;
+    transition: all 0.2s ease;
+}
+
+.quick-banner-btn:hover {
+    background: rgba(121, 40, 202, 0.4);
+    color: #ffffff;
+    box-shadow: 0 0 10px rgba(121, 40, 202, 0.3);
+}
+
+/* Modal de Modelos */
+.models-modal {
+    max-width: 1100px;
+}
+
+.models-nav-tabs {
+    display: flex;
+    gap: 8px;
+    padding: 0 28px 16px 28px;
+    border-bottom: 1px solid var(--border-glow);
+    background: rgba(10, 14, 23, 0.5);
+}
+
+.model-nav-tab {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--text-secondary);
+    padding: 10px 18px;
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.model-nav-tab:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+}
+
+.model-nav-tab.active {
+    background: linear-gradient(135deg, rgba(0, 245, 212, 0.15), rgba(121, 40, 202, 0.2));
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
+    box-shadow: 0 0 14px rgba(0, 245, 212, 0.25);
+}
+
+.model-tab-pane {
+    display: none;
+    animation: fadeInModal 0.2s ease-out;
+}
+
+.model-tab-pane.active {
+    display: block;
+}
+
+.models-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 18px;
+}
+
+.model-card {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-glow);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.model-card:hover {
+    border-color: rgba(0, 245, 212, 0.45);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 16px rgba(0, 245, 212, 0.15);
+    transform: translateY(-2px);
+}
+
+.model-card.featured {
+    border-color: rgba(0, 245, 212, 0.5);
+    background: linear-gradient(145deg, rgba(16, 24, 38, 0.95), rgba(14, 30, 48, 0.9));
+    box-shadow: 0 0 20px rgba(0, 245, 212, 0.15);
+}
+
+.model-card-badge {
+    align-self: flex-start;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+    background: rgba(0, 245, 212, 0.12);
+    border: 1px solid rgba(0, 245, 212, 0.35);
+    color: var(--accent-cyan);
+}
+
+.model-card-badge.specialized {
+    background: rgba(121, 40, 202, 0.15);
+    border-color: rgba(121, 40, 202, 0.4);
+    color: #c4b5fd;
+}
+
+.model-card-badge.quality {
+    background: rgba(0, 112, 243, 0.15);
+    border-color: rgba(0, 112, 243, 0.4);
+    color: #60a5fa;
+}
+
+.model-card-badge.lightweight {
+    background: rgba(16, 185, 129, 0.15);
+    border-color: rgba(16, 185, 129, 0.4);
+    color: #34d399;
+}
+
+.model-card-badge.premium {
+    background: rgba(245, 158, 11, 0.15);
+    border-color: rgba(245, 158, 11, 0.4);
+    color: #fbbf24;
+}
+
+.model-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.model-card-header h4 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.model-size-tag {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: var(--text-muted);
+    background: rgba(255, 255, 255, 0.05);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.model-card-desc {
+    margin: 0;
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    flex-grow: 1;
+}
+
+.model-code-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #06090e;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    gap: 8px;
+}
+
+.model-code-box code {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--accent-cyan);
+    overflow-x: auto;
+    white-space: nowrap;
+}
+
+.copy-cmd-btn {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: var(--text-secondary);
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.copy-cmd-btn:hover {
+    background: var(--accent-cyan);
+    color: #06090e;
+    border-color: var(--accent-cyan);
+}
+
+.copy-cmd-btn.copied {
+    background: #10b981;
+    color: #ffffff;
+    border-color: #10b981;
+    font-weight: 700;
+}
+
+.model-card-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: auto;
+}
+
+.model-link-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: var(--text-primary);
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    width: 100%;
+}
+
+.model-link-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
+    box-shadow: 0 0 10px rgba(0, 245, 212, 0.2);
+}
+
+.model-link-btn.primary {
+    background: linear-gradient(135deg, rgba(255, 157, 0, 0.15), rgba(255, 94, 0, 0.2));
+    border-color: rgba(255, 157, 0, 0.4);
+    color: #ffb74d;
+}
+
+.model-link-btn.primary:hover {
+    background: linear-gradient(135deg, rgba(255, 157, 0, 0.3), rgba(255, 94, 0, 0.35));
+    border-color: #ffb74d;
+    color: #ffffff;
+    box-shadow: 0 0 12px rgba(255, 157, 0, 0.3);
+}
