@@ -3,9 +3,29 @@
 #include <httplib.h>
 #include <regex>
 #include <iostream>
+#include <sstream>
+#include <iomanip>
 #include <algorithm>
 
 namespace kofu {
+
+namespace {
+
+std::string url_encode(const std::string& value) {
+    std::ostringstream escaped;
+    escaped.fill('0');
+    escaped << std::hex;
+    for (char c : value) {
+        if (isalnum((unsigned char)c) || c == '-' || c == '_' || c == '.' || c == '~') {
+            escaped << c;
+        } else {
+            escaped << '%' << std::uppercase << std::setw(2) << int((unsigned char)c);
+        }
+    }
+    return escaped.str();
+}
+
+} // anonymous namespace
 
 WebResearcher::WebResearcher(const Config& config) : config_(config) {}
 
@@ -47,17 +67,18 @@ std::vector<SearchResult> WebResearcher::search_google(std::string_view query, i
     // cpp-httplib might need HTTPS for Google API, we try via Client
     httplib::Client cli("https://www.googleapis.com");
     cli.set_connection_timeout(5);
+    cli.set_follow_location(true);
 
-    std::string path = "/customsearch/v1?key=" + httplib::detail::encode_url(config_.google_api_key) + 
-                       "&cx=" + httplib::detail::encode_url(config_.google_cx) + 
-                       "&q=" + httplib::detail::encode_url(std::string(query)) + 
+    std::string path = "/customsearch/v1?key=" + url_encode(config_.google_api_key) + 
+                       "&cx=" + url_encode(config_.google_cx) + 
+                       "&q=" + url_encode(std::string(query)) + 
                        "&num=" + std::to_string(std::min(num_results, 10));
 
     if (auto res = cli.Get(path)) {
         if (res->status == 200) {
             auto j = safe_parse(res->body);
-            if (j.contains("items") && j["items"].is_array()) {
-                for (const auto& item : j["items"]) {
+            if (j.has_value() && j->contains("items") && (*j)["items"].is_array()) {
+                for (const auto& item : (*j)["items"]) {
                     SearchResult sr;
                     if (item.contains("title") && item["title"].is_string()) sr.title = item["title"];
                     if (item.contains("link") && item["link"].is_string()) sr.url = item["link"];
@@ -75,18 +96,19 @@ std::vector<SearchResult> WebResearcher::search_google(std::string_view query, i
 std::vector<SearchResult> WebResearcher::search_duckduckgo(std::string_view query, int num_results) {
     std::vector<SearchResult> results;
     
-    // DuckDuckGo non-SSL endpoint
+    // DuckDuckGo endpoint
     httplib::Client cli("http://html.duckduckgo.com");
     cli.set_connection_timeout(5);
+    cli.set_follow_location(true);
 
-    std::string path = "/html/?q=" + httplib::detail::encode_url(std::string(query));
+    std::string path = "/html/?q=" + url_encode(std::string(query));
 
     if (auto res = cli.Get(path)) {
         if (res->status == 200 || res->status == 301 || res->status == 302) {
             std::string html = res->body;
             
             // Simple regex to extract DuckDuckGo results
-            std::regex result_re(R"(class="result__title"[^>]*>\s*<a[^>]*href="([^"]+)"[^>]*>(.*?)</a>.*?"result__snippet[^>]*>(.*?)</a>)");
+            std::regex result_re(R"re(class="result__title"[^>]*>\s*<a[^>]*href="([^"]+)"[^>]*>(.*?)</a>.*?"result__snippet[^>]*>(.*?)</a>)re");
             
             std::sregex_iterator next(html.begin(), html.end(), result_re);
             std::sregex_iterator end;
@@ -126,15 +148,16 @@ std::vector<SearchResult> WebResearcher::search_bing(std::string_view query, int
     // Bing endpoint
     httplib::Client cli("http://www.bing.com");
     cli.set_connection_timeout(5);
+    cli.set_follow_location(true);
 
-    std::string path = "/search?q=" + httplib::detail::encode_url(std::string(query));
+    std::string path = "/search?q=" + url_encode(std::string(query));
 
     if (auto res = cli.Get(path)) {
         if (res->status == 200) {
             std::string html = res->body;
             
             // Simple regex to extract Bing results
-            std::regex result_re(R"(<li class="b_algo">.*?<h2[^>]*>\s*<a[^>]*href="([^"]+)"[^>]*>(.*?)</a>.*?<p[^>]*>(.*?)</p>)");
+            std::regex result_re(R"re(<li class="b_algo">.*?<h2[^>]*>\s*<a[^>]*href="([^"]+)"[^>]*>(.*?)</a>.*?<p[^>]*>(.*?)</p>)re");
             
             std::sregex_iterator next(html.begin(), html.end(), result_re);
             std::sregex_iterator end;

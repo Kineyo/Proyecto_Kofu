@@ -63,15 +63,15 @@ std::string Sanitizer::strip_html(const std::string& text) {
 }
 
 // ---------------------------------------------------------------------------
-// strip_control_chars — remove 0x00-0x1F and 0x7F-0x9F
+// strip_control_chars — remove ASCII control chars 0x00-0x1F and 0x7F
+// preserving valid multi-byte UTF-8 bytes (0x80-0xFF)
 // ---------------------------------------------------------------------------
 std::string Sanitizer::strip_control_chars(const std::string& text) {
     std::string result;
     result.reserve(text.size());
     for (unsigned char c : text) {
-        if ((c >= 0x00 && c <= 0x1F && c != '\n' && c != '\r' && c != '\t') ||
-            (c >= 0x7F && c <= 0x9F)) {
-            continue; // Skip control characters (keep newline, CR, tab)
+        if ((c < 0x20 && c != '\n' && c != '\r' && c != '\t') || c == 0x7F) {
+            continue; // Skip ASCII control characters (keep newline, CR, tab)
         }
         result.push_back(static_cast<char>(c));
     }

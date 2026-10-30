@@ -22,7 +22,14 @@ namespace kofu {
 struct Config {
     // -- Ollama connection --
     std::string ollama_base_url      = "http://localhost:11434";
-    std::vector<std::string> default_models = {"gemma4:latest", "llama3:latest"};
+    std::vector<std::string> default_models = {
+        "qwen2.5:7b",
+        "qwen2.5:3b",
+        "qwen2.5-coder:7b",
+        "qwen2.5-coder:1.5b",
+        "qwen2.5:1.5b",
+        "qwen2.5:0.5b"
+    };
 
     // -- Ollama timeouts (seconds) --
     int ollama_timeout_check    = 5;
@@ -49,7 +56,7 @@ struct Config {
 
     // -- Flags --
     bool use_local_llm = true;
-    std::string llm_model_name = "gemma4:latest";
+    std::string llm_model_name = "qwen2.5:7b";
 };
 
 // ---------------------------------------------------------------------------

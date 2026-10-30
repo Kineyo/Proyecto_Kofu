@@ -184,7 +184,7 @@ void HttpServer::handle_health(const httplib::Request&,
         {"ollama_available", available},
         {"ollama_modelos_instalados", available ? json(ollama_client_.list_models()) : json::array()},
         {"ollama_ultimo_modelo_usado", ollama_client_.last_model_used()},
-        {"file_processor_available", false},  // MarkItDown not ported
+        {"file_processor_available", file_processor_.is_available()},
         {"modos_disponibles", {"local", "online"}},
     };
     send_json(res, response);
@@ -210,7 +210,7 @@ void HttpServer::handle_templates(const httplib::Request&,
     if (fs::exists(ppt_path)) {
         for (const auto& entry : fs::directory_iterator(ppt_path)) {
             std::string name = entry.path().filename().string();
-            if (name.starts_with("~$")) continue;
+            if (name.rfind("~$", 0) == 0 || name.rfind(".", 0) == 0) continue;
             std::string ext = entry.path().extension().string();
             if (ext == ".pptx" || ext == ".potx" || ext == ".pptm") {
                 ppt_templates.push_back(name);
@@ -222,7 +222,7 @@ void HttpServer::handle_templates(const httplib::Request&,
     if (fs::exists(word_path)) {
         for (const auto& entry : fs::directory_iterator(word_path)) {
             std::string name = entry.path().filename().string();
-            if (name.starts_with("~$")) continue;
+            if (name.rfind("~$", 0) == 0 || name.rfind(".", 0) == 0) continue;
             std::string ext = entry.path().extension().string();
             if (ext == ".docx" || ext == ".dotx" || ext == ".docm") {
                 word_templates.push_back(name);
@@ -290,7 +290,7 @@ void HttpServer::handle_research(const httplib::Request& req,
 
     std::string topic = json_string(*body, "topic");
     std::string modo = json_string(*body, "modo", "online");
-    std::string model = json_string(*body, "model", "gemma4:latest");
+    std::string model = json_string(*body, "model", "qwen2.5:7b");
 
     try {
         std::string summary = assistant_.research_topic(topic, modo, model);
@@ -312,8 +312,9 @@ void HttpServer::handle_create_powerpoint(const httplib::Request& req,
     std::string theme = json_string(*body, "theme", "professional");
     std::string modo = json_string(*body, "modo", "online");
     std::string filename = json_string(*body, "filename");
+    std::string output_path = json_string(*body, "output_path", "");
     std::string tmpl = json_string(*body, "template");
-    std::string model = json_string(*body, "model", "gemma4:latest");
+    std::string model = json_string(*body, "model", "qwen2.5:7b");
 
     try {
         auto result = assistant_.create_presentation(
@@ -348,8 +349,9 @@ void HttpServer::handle_download_powerpoint(const httplib::Request& req,
     std::string theme = json_string(*body, "theme", "professional");
     std::string modo = json_string(*body, "modo", "online");
     std::string filename = json_string(*body, "filename");
+    std::string output_path = json_string(*body, "output_path", "");
     std::string tmpl = json_string(*body, "template");
-    std::string model = json_string(*body, "model", "gemma4:latest");
+    std::string model = json_string(*body, "model", "qwen2.5:7b");
 
     try {
         auto result = assistant_.create_presentation(
@@ -380,8 +382,9 @@ void HttpServer::handle_create_word(const httplib::Request& req,
     std::string style = json_string(*body, "style", "professional");
     std::string modo = json_string(*body, "modo", "online");
     std::string filename = json_string(*body, "filename");
+    std::string output_path = json_string(*body, "output_path", "");
     std::string tmpl = json_string(*body, "template");
-    std::string model = json_string(*body, "model", "gemma4:latest");
+    std::string model = json_string(*body, "model", "qwen2.5:7b");
 
     try {
         auto result = assistant_.create_document(
@@ -416,8 +419,9 @@ void HttpServer::handle_download_word(const httplib::Request& req,
     std::string style = json_string(*body, "style", "professional");
     std::string modo = json_string(*body, "modo", "online");
     std::string filename = json_string(*body, "filename");
+    std::string output_path = json_string(*body, "output_path", "");
     std::string tmpl = json_string(*body, "template");
-    std::string model = json_string(*body, "model", "gemma4:latest");
+    std::string model = json_string(*body, "model", "qwen2.5:7b");
 
     try {
         auto result = assistant_.create_document(
@@ -452,12 +456,25 @@ void HttpServer::handle_office_tips(const httplib::Request& req,
 // ---------------------------------------------------------------------------
 // POST /files/digest
 // ---------------------------------------------------------------------------
-void HttpServer::handle_file_digest(const httplib::Request&,
+void HttpServer::handle_file_digest(const httplib::Request& req,
                                     httplib::Response& res) {
-    // MarkItDown is not ported to C++ (Python-only library).
-    send_error(res,
-        "File digest no está disponible en la versión C++. "
-        "Usa la versión Python para procesar archivos.", 503);
+    auto body = safe_parse(req.body);
+    if (!body.has_value()) { send_error(res, "Invalid JSON", 400); return; }
+
+    std::string file_path_str = json_string(*body, "file_path");
+    if (file_path_str.empty()) {
+        send_error(res, "Missing file_path", 400);
+        return;
+    }
+
+    fs::path target_path(file_path_str);
+    auto ingest_res = file_processor_.process_file(target_path);
+    if (!ingest_res.success) {
+        send_error(res, ingest_res.error, 422);
+        return;
+    }
+
+    send_json(res, ingest_res.to_json());
 }
 
 // ---------------------------------------------------------------------------
@@ -514,13 +531,13 @@ void HttpServer::handle_file_upload(const httplib::Request& req,
     ofs.write(file.content.data(), static_cast<std::streamsize>(file.content.size()));
     ofs.close();
 
-    send_json(res, {
-        {"success", true},
-        {"filename", filename},
-        {"file_path", file_path.string()},
-        {"size_bytes", file.content.size()},
-        {"message", "Archivo guardado. Nota: conversión de contenido no disponible en versión C++."},
-    });
+    // Ingest text using native C++ FileProcessor
+    auto ingest_res = file_processor_.process_file(file_path);
+    json response = ingest_res.to_json();
+    response["file_path"] = file_path.string();
+    response["stored_path"] = file_path.string();
+
+    send_json(res, response);
 }
 
 // ---------------------------------------------------------------------------

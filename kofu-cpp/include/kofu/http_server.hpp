@@ -12,6 +12,7 @@
 #include "kofu/assistant.hpp"
 #include "kofu/ollama_client.hpp"
 #include "kofu/json_utils.hpp"
+#include "kofu/file_processor.hpp"
 
 #include <httplib.h>
 #include <memory>
@@ -59,6 +60,7 @@ private:
     Config config_;
     AIAssistant& assistant_;
     OllamaClient& ollama_client_;
+    FileProcessor file_processor_;
     httplib::Server server_;
 };
 

@@ -12,6 +12,7 @@
 #include <iostream>
 #include <cstring>
 #include <algorithm>
+#include <chrono>
 
 namespace kofu {
 
@@ -512,8 +513,9 @@ std::optional<fs::path> PptxGenerator::convert_template(
 {
     if (!fs::exists(template_path)) return std::nullopt;
 
-    fs::path temp_output = output_dir /
-        (template_path.stem().string() + "_temp.pptx");
+    auto nonce = std::to_string(std::chrono::steady_clock::now().time_since_epoch().count());
+    fs::path temp_output = fs::temp_directory_path() /
+        ("kofu_tmpl_" + template_path.stem().string() + "_" + nonce + ".pptx");
 
     int err = 0;
     zip_t* src_zip = zip_open(template_path.string().c_str(), ZIP_RDONLY, &err);

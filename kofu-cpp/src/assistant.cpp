@@ -76,9 +76,10 @@ AIAssistant::FileGenerationResult AIAssistant::create_presentation(const std::st
     
     std::string prompt = "Create a presentation about " + safe_topic + ". Please return a JSON object with 'title' and 'slides'. Each slide should have 'title', 'text' and 'layout' (int 0-8). Return ONLY valid JSON, no markdown formatting.";
     
-    auto [json_str, used_model] = ollama_.generate(prompt, selected_model, "Eres un generador de presentaciones. Solo responde con JSON válido.", 0.8, 4000);
+    auto [json_str, used_model] = ollama_.reason(
+        prompt, selected_model, "Eres un generador de presentaciones. Solo responde con JSON válido.");
     
-    auto json_data = safe_parse(extract_json(json_str));
+    auto json_data = extract_json(json_str);
     if (!json_data.has_value()) {
         throw std::runtime_error("Failed to parse presentation JSON");
     }
@@ -99,7 +100,8 @@ AIAssistant::FileGenerationResult AIAssistant::create_presentation(const std::st
     PptxGenerator generator(config_.output_dir, config_.backup_dir);
     
     std::string final_output = output_path.empty() ? config_.output_dir.string() : output_path;
-    fs::path final_path = fs::path(final_output) / Sanitizer::sanitize_filename(filename);
+    std::string safe_name = filename.empty() ? safe_topic : filename;
+    fs::path final_path = fs::path(final_output) / Sanitizer::sanitize_filename(safe_name);
     if (final_path.extension() != ".pptx") {
         final_path += ".pptx";
     }
@@ -124,9 +126,10 @@ AIAssistant::FileGenerationResult AIAssistant::create_document(const std::string
     
     std::string prompt = "Create a document about " + safe_topic + ". Return a JSON object with 'title' and 'content' array. Each item in 'content' should have 'type' ('heading' or 'paragraph') and 'text'. If type is 'heading', include 'level' (1-3). Return ONLY valid JSON, no markdown formatting.";
     
-    auto [json_str, used_model] = ollama_.generate(prompt, selected_model, "Eres un generador de documentos. Solo responde con JSON válido.", 0.8, 4000);
+    auto [json_str, used_model] = ollama_.reason(
+        prompt, selected_model, "Eres un generador de documentos. Solo responde con JSON válido.");
     
-    auto json_data = safe_parse(extract_json(json_str));
+    auto json_data = extract_json(json_str);
     if (!json_data.has_value()) {
         throw std::runtime_error("Failed to parse document JSON");
     }
@@ -152,7 +155,8 @@ AIAssistant::FileGenerationResult AIAssistant::create_document(const std::string
     DocxGenerator generator(config_.output_dir, config_.backup_dir);
     
     std::string final_output = output_path.empty() ? config_.output_dir.string() : output_path;
-    fs::path final_path = fs::path(final_output) / Sanitizer::sanitize_filename(filename);
+    std::string safe_name = filename.empty() ? safe_topic : filename;
+    fs::path final_path = fs::path(final_output) / Sanitizer::sanitize_filename(safe_name);
     if (final_path.extension() != ".docx") {
         final_path += ".docx";
     }

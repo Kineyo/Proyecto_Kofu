@@ -16,6 +16,7 @@
 #include <iostream>
 #include <algorithm>
 #include <cstring>
+#include <chrono>
 
 namespace kofu {
 
@@ -518,8 +519,9 @@ std::optional<fs::path> DocxGenerator::convert_template(
 {
     if (!fs::exists(template_path)) return std::nullopt;
 
-    fs::path temp_output = output_dir /
-        (template_path.stem().string() + "_temp.docx");
+    auto nonce = std::to_string(std::chrono::steady_clock::now().time_since_epoch().count());
+    fs::path temp_output = fs::temp_directory_path() /
+        ("kofu_tmpl_" + template_path.stem().string() + "_" + nonce + ".docx");
 
     int err = 0;
     zip_t* src_zip = zip_open(template_path.string().c_str(), ZIP_RDONLY, &err);
@@ -605,7 +607,7 @@ void DocxGenerator::modify_existing_docx(
         return;
     }
 
-    // Copy all entries from source, replacing document.xml with our content
+    // Generate new content
     std::string new_doc_xml = generate_document_xml(content, style);
     zip_int64_t num_entries = zip_get_num_entries(src_zip, 0);
 
@@ -613,26 +615,51 @@ void DocxGenerator::modify_existing_docx(
         const char* name = zip_get_name(src_zip, static_cast<zip_uint64_t>(i), 0);
         if (!name) continue;
 
+        struct zip_stat st;
+        zip_stat_init(&st);
+        zip_stat_index(src_zip, static_cast<zip_uint64_t>(i), 0, &st);
+
+        zip_file_t* file = zip_fopen_index(src_zip, static_cast<zip_uint64_t>(i), 0);
+        if (!file) continue;
+
+        std::string file_content(static_cast<size_t>(st.size), '\0');
+        zip_fread(file, file_content.data(), static_cast<zip_uint64_t>(st.size));
+        zip_fclose(file);
+
         std::string entry_name(name);
 
         if (entry_name == "word/document.xml") {
-            // Replace with our generated content
-            zip_add_buffer(dst_zip, name, new_doc_xml);
+            // Use pugixml to inject new content into the existing template DOM
+            // preserving sectPr (headers, footers, margins, styles)
+            pugi::xml_document tmpl_doc;
+            bool injected = false;
+            if (tmpl_doc.load_buffer(file_content.data(), file_content.size())) {
+                pugi::xml_node body = tmpl_doc.child("w:document").child("w:body");
+                if (body) {
+                    pugi::xml_node sectPr = body.child("w:sectPr");
+                    pugi::xml_document gen_doc;
+                    if (gen_doc.load_string(new_doc_xml.c_str())) {
+                        pugi::xml_node gen_body = gen_doc.child("w:document").child("w:body");
+                        for (pugi::xml_node child : gen_body.children()) {
+                            if (std::string(child.name()) != "w:sectPr") {
+                                if (sectPr) {
+                                    body.insert_copy_before(child, sectPr);
+                                } else {
+                                    body.append_copy(child);
+                                }
+                            }
+                        }
+                        std::ostringstream ss;
+                        tmpl_doc.save(ss, "  ", pugi::format_raw);
+                        zip_add_buffer(dst_zip, name, ss.str());
+                        injected = true;
+                    }
+                }
+            }
+            if (!injected) {
+                zip_add_buffer(dst_zip, name, new_doc_xml);
+            }
         } else {
-            // Copy from source
-            struct zip_stat st;
-            zip_stat_init(&st);
-            zip_stat_index(src_zip, static_cast<zip_uint64_t>(i), 0, &st);
-
-            zip_file_t* file = zip_fopen_index(src_zip,
-                static_cast<zip_uint64_t>(i), 0);
-            if (!file) continue;
-
-            std::string file_content(static_cast<size_t>(st.size), '\0');
-            zip_fread(file, file_content.data(),
-                      static_cast<zip_uint64_t>(st.size));
-            zip_fclose(file);
-
             zip_add_buffer(dst_zip, name, file_content);
         }
     }

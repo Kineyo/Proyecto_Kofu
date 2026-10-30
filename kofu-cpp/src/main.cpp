@@ -25,10 +25,11 @@ int main() {
         kofu::AIAssistant assistant(config, ollama_client, model_router);
 
         // 3. Initialize HTTP Server
+        int port = kofu::find_free_port(config.preferred_ports);
         kofu::HttpServer server(config, assistant, ollama_client);
 
         // 4. Start Server (blocks until stopped)
-        server.start(config.server_port);
+        server.start(port);
 
     } catch (const std::exception& e) {
         std::cerr << "CRITICAL ERROR: " << e.what() << std::endl;

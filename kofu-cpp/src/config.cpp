@@ -250,7 +250,14 @@ Config load_config(const fs::path& env_file_path) {
         cfg.default_models.push_back(fallback);
     // Always ensure at least the hardcoded defaults
     if (cfg.default_models.empty()) {
-        cfg.default_models = {"gemma4:latest", "llama3:latest"};
+        cfg.default_models = {
+            "qwen2.5:7b",
+            "qwen2.5:3b",
+            "qwen2.5-coder:7b",
+            "qwen2.5-coder:1.5b",
+            "qwen2.5:1.5b",
+            "qwen2.5:0.5b"
+        };
     }
 
     // -- Flags --

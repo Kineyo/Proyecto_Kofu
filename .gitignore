@@ -22,9 +22,15 @@ backend/src/__pycache__
 # Archivos no vitales
 .env
 .sync-exclude.lst
+# Build and runtime
+build/
+kofu-cpp/build/
+archivos/
 Archivos/
-Propuestas/
 output/
+.kofu_cache/
+.laria_cache/
+__pycache__/
 *.bak
 *.log
 monitor.py

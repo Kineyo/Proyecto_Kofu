@@ -20,14 +20,14 @@ ModelRouter::ModelRouter(const OllamaClient& client)
 // ---------------------------------------------------------------------------
 std::string ModelRouter::preferred_model(TaskType task) {
     switch (task) {
-        case TaskType::Chat:          return "qwen2.5:0.5b";
-        case TaskType::Document:      return "gemma4:latest";
-        case TaskType::Presentation:  return "gemma4:latest";
-        case TaskType::Reasoning:     return "llama3.2:3b";
-        case TaskType::Research:      return "gemma4:latest";
-        case TaskType::CodeGen:       return "qwen2.5-coder:3b";
+        case TaskType::Chat:          return "qwen2.5:3b";
+        case TaskType::Document:      return "qwen2.5:7b";
+        case TaskType::Presentation:  return "qwen2.5:7b";
+        case TaskType::Reasoning:     return "qwen2.5:7b";
+        case TaskType::Research:      return "qwen2.5:7b";
+        case TaskType::CodeGen:       return "qwen2.5-coder:7b";
         case TaskType::Sanitization:  return "qwen2.5:0.5b";
-        default:                      return "gemma4:latest";
+        default:                      return "qwen2.5:7b";
     }
 }
 
@@ -54,13 +54,17 @@ std::string ModelRouter::resolve_for_task(
     TaskType task,
     const std::string& user_requested_model) const
 {
-    // Build a fallback chain: preferred model for this task, then generics
+    // Build a fallback chain: preferred model for this task, then generics (all Qwen <= 11B)
     std::vector<std::string> fallbacks = {
         preferred_model(task),
-        "gemma4:latest",
-        "llama3.2:3b",
-        "llama3:latest",
+        "qwen2.5:7b",
+        "qwen2.5:3b",
+        "qwen2.5-coder:7b",
+        "qwen2.5-coder:1.5b",
+        "qwen2.5:1.5b",
         "qwen2.5:0.5b",
+        "qwen3:0.6b",
+        "hf.co/TobiasLogic/qwen-2.5-coder-Uncensored:Q4_K_M"
     };
 
     return client_.resolve_model(user_requested_model, fallbacks);

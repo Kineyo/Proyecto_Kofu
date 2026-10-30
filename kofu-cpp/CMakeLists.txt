@@ -83,17 +83,9 @@ set(KOFU_THREAD_POOL_SIZE 6 CACHE STRING "HTTP server thread pool size")
 add_compile_definitions(KOFU_THREAD_POOL_SIZE=${KOFU_THREAD_POOL_SIZE})
 
 # ---------------------------------------------------------------------------
-# Fetch header-only dependencies (cpp-httplib, nlohmann/json, pugixml)
+# Fetch header-only and third-party dependencies (cpp-httplib, nlohmann/json, pugixml, libzip)
 # ---------------------------------------------------------------------------
 include(cmake/FetchDependencies.cmake)
-
-# ---------------------------------------------------------------------------
-# Find system libraries
-# ---------------------------------------------------------------------------
-# libzip — required for .docx/.pptx ZIP archive creation
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(LIBZIP REQUIRED IMPORTED_TARGET libzip)
-message(STATUS "libzip: ${LIBZIP_VERSION} (${LIBZIP_LINK_LIBRARIES})")
 
 # Threads — required by cpp-httplib
 find_package(Threads REQUIRED)
@@ -113,6 +105,7 @@ set(KOFU_SOURCES
     src/docx_generator.cpp
     src/pptx_generator.cpp
     src/web_research.cpp
+    src/file_processor.cpp
     src/assistant.cpp
     src/http_server.cpp
 )
@@ -128,6 +121,7 @@ set(KOFU_HEADERS
     include/kofu/docx_generator.hpp
     include/kofu/pptx_generator.hpp
     include/kofu/web_research.hpp
+    include/kofu/file_processor.hpp
     include/kofu/assistant.hpp
     include/kofu/http_server.hpp
 )
@@ -145,9 +139,13 @@ target_link_libraries(kofu PRIVATE
     httplib::httplib             # HTTP server + client
     nlohmann_json::nlohmann_json # JSON parsing
     pugixml::pugixml             # XML DOM manipulation
-    PkgConfig::LIBZIP            # ZIP archive read/write
+    PkgConfig::LIBZIP            # ZIP archive read/write (system or fetched)
     Threads::Threads             # pthreads
 )
+
+if(TARGET OpenSSL::SSL AND TARGET OpenSSL::Crypto)
+    target_link_libraries(kofu PRIVATE OpenSSL::SSL OpenSSL::Crypto)
+endif()
 
 # ---------------------------------------------------------------------------
 # Install rules

@@ -68,7 +68,7 @@ OllamaClient::OllamaClient(const std::string& base_url,
     : base_url_(base_url)
     , timeout_check_(timeout_check)
     , timeout_generate_(timeout_generate)
-    , default_models_({"gemma4:latest", "llama3:latest"})
+    , default_models_({"qwen2.5:7b", "qwen2.5:3b", "qwen2.5-coder:1.5b", "qwen2.5:0.5b"})
 {}
 
 // ---------------------------------------------------------------------------
