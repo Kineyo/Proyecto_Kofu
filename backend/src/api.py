@@ -6,7 +6,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
 
 from config import find_free_port, PREFERRED_PORTS, APP_VERSION
-from paths import WEB_DIR
+from paths import WEB_DIR, PACKAGES_DIR
 from routes import router
 
 app = FastAPI(title="Kofu AI API", version=APP_VERSION)
@@ -21,6 +21,10 @@ app.add_middleware(
 )
 
 app.include_router(router)
+
+# Montar Paquetes de Plantillas
+if PACKAGES_DIR.exists():
+    app.mount("/templates/packages/static", StaticFiles(directory=str(PACKAGES_DIR)), name="templates_packages")
 
 # Montar Frontend Web
 if WEB_DIR.exists():

@@ -19,6 +19,7 @@ BASE_DIR = get_base_dir()
 EXEC_DIR = get_exec_dir()
 
 TEMPLATES_DIR = BASE_DIR / 'templates'
+PACKAGES_DIR = TEMPLATES_DIR / 'packages'
 WEB_DIR = BASE_DIR / 'web'
 OUTPUT_DIR = EXEC_DIR / 'output'
 ARCHIVOS_DIR = EXEC_DIR / 'archivos'

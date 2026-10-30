@@ -27,6 +27,7 @@ CONTEXTO
 # App output and specific ignores
 output/
 archivos/
+Archivos/
 Archivos_Extra/
 *.bak
 *.log
