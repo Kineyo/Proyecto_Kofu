@@ -1,8 +1,8 @@
 # Script de inicio para Windows (PowerShell)
 
 echo "=========================================="
-echo "      Iniciando Kofu para Windows[Powershell]..."
-echo "=========================================="                                      "
+echo "      Iniciando Kofu para Windows [PowerShell]..."
+echo "=========================================="
 
 # Cambiar al directorio del script
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
