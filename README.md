@@ -1,7 +1,7 @@
 # 📦 Paquetes Oficiales de Plantillas Kofu AI (Word & PowerPoint)
 
 <p align="center">
-<img src="banner plantillas.png" alt="banner" width="80%">
+  <img src="banner plantillas.png" alt="Banner" width="80%" style="border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.5);">
 </p>
 
 <p align="center">
@@ -45,3 +45,11 @@ Cada paquete comprimido en formato `.zip` contiene plantillas maestras editables
    - Archivos `.dotx` en `templates/word/`
    - Archivos `.potx` en `templates/powerpoint/`
 3. Kofu las detectará automáticamente sin necesidad de reiniciar el servicio.
+
+---
+
+## 📄 Licencia
+
+Este repositorio y todas las plantillas distribuidas en esta rama están licenciadas bajo los términos de la **[Licencia MIT](LICENSE)**. 
+
+Cualquier persona es libre de usar, adaptar, modificar, redistribuir e integrar estas plantillas en proyectos personales, académicos o comerciales sin restricciones, con la única condición de preservar el aviso de derechos de autor y la renuncia de responsabilidad.
