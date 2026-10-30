@@ -1,6 +1,10 @@
 # 📦 Paquetes Oficiales de Plantillas Kofu AI (Word & PowerPoint)
 
 <p align="center">
+<img src="banner plantillas.png" alt="banner" width="80%">
+</p>
+
+<p align="center">
   <img src="https://img.shields.io/badge/Kofu-Plantillas%20Oficiales-00f5d4?style=for-the-badge&logoColor=black" alt="Kofu Templates">
   <img src="https://img.shields.io/badge/Paquetes-11%20Categor%C3%ADas-7928CA?style=for-the-badge" alt="11 Paquetes">
   <img src="https://img.shields.io/badge/Total%20Plantillas-66%2B-0070F3?style=for-the-badge" alt="66+ Plantillas">
