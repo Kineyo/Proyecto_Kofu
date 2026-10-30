@@ -15,6 +15,9 @@
 # =============================================================================
 
 cmake_minimum_required(VERSION 3.20)
+if(POLICY CMP0135)
+    cmake_policy(SET CMP0135 NEW)
+endif()
 
 project(kofu
     VERSION      2.0.0
@@ -172,10 +175,19 @@ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../templates/
 )
 
 # Install .env config template
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/../.env
-    DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/kofu
-    RENAME kofu.env.example
-)
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../.env.example")
+    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/../.env.example
+        DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/kofu
+        RENAME kofu.env.example
+        OPTIONAL
+    )
+elseif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../.env")
+    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/../.env
+        DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/kofu
+        RENAME kofu.env.example
+        OPTIONAL
+    )
+endif()
 
 # Install desktop entry (Linux)
 if(UNIX AND NOT APPLE)
