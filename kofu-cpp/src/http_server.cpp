@@ -10,6 +10,8 @@
 #include <fstream>
 #include <iostream>
 #include <algorithm>
+#include <thread>
+#include <chrono>
 
 namespace kofu {
 
@@ -217,6 +219,16 @@ void HttpServer::setup_routes() {
         [this](const httplib::Request& req, httplib::Response& res) {
             handle_file_upload(req, res);
         });
+
+    server_.Post("/system/shutdown",
+        [this](const httplib::Request&, httplib::Response& res) {
+            json body = {{"status", "ok"}, {"message", "Servidor C++ detenido correctamente."}};
+            send_json(res, body);
+            std::thread([this]() {
+                std::this_thread::sleep_for(std::chrono::milliseconds(200));
+                stop();
+            }).detach();
+        });
 }
 
 // ---------------------------------------------------------------------------
@@ -228,6 +240,7 @@ void HttpServer::handle_health(const httplib::Request&,
 
     json response = {
         {"status", "ok"},
+        {"version", "2.0.0"},
         {"ollama_available", available},
         {"ollama_modelos_instalados", available ? json(ollama_client_.list_models()) : json::array()},
         {"ollama_ultimo_modelo_usado", ollama_client_.last_model_used()},

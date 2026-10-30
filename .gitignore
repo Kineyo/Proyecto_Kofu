@@ -46,3 +46,4 @@ test_document.py
 test_converted.docx
 test_run.py
 backend/src/__pycache__/api.cpython-312.pyc
+.obsidian/
