@@ -1,7 +1,7 @@
-# Kofu v1.5 // Neural Office System
+# Kofu v1.5
 
 <p align="center">
-  <img src="assets/banner kofu2.jpeg" alt="Banner Kofu" width="100%" style="border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.5);">
+  <img src="assets/banner kofu2.jpeg" alt="Banner Kofu" width="80%" style="border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.5);">
 </p>
 
 <p align="center">
