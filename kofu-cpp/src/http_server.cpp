@@ -105,6 +105,11 @@ void HttpServer::setup_routes() {
         server_.set_mount_point("/web", config_.web_dir.string());
     }
 
+    fs::path packages_dir = config_.templates_dir / "packages";
+    if (fs::exists(packages_dir)) {
+        server_.set_mount_point("/templates/packages", packages_dir.string());
+    }
+
     // API routes
     server_.Get("/health",
         [this](const httplib::Request& req, httplib::Response& res) {
@@ -119,6 +124,48 @@ void HttpServer::setup_routes() {
     server_.Get("/templates",
         [this](const httplib::Request& req, httplib::Response& res) {
             handle_templates(req, res);
+        });
+
+    server_.Get("/templates/packages",
+        [this](const httplib::Request& req, httplib::Response& res) {
+            add_cors_headers(res);
+            fs::path cat_file = config_.templates_dir / "packages" / "templates_catalog.json";
+            if (fs::exists(cat_file)) {
+                std::ifstream ifs(cat_file);
+                if (ifs.is_open()) {
+                    std::string str((std::istreambuf_iterator<char>(ifs)),
+                                     std::istreambuf_iterator<char>());
+                    res.set_content(str, "application/json; charset=utf-8");
+                    return;
+                }
+            }
+            send_json(res, json::array());
+        });
+
+    server_.Get(R"(/templates/packages/download/(.+))",
+        [this](const httplib::Request& req, httplib::Response& res) {
+            add_cors_headers(res);
+            std::string pack_name = req.matches[1];
+            // Sanitizar nombre de archivo evitando directory traversal
+            if (pack_name.find("..") != std::string::npos || pack_name.find('/') != std::string::npos || pack_name.find('\\') != std::string::npos) {
+                send_error(res, "Nombre de archivo no válido", 400);
+                return;
+            }
+            fs::path zip_path = config_.templates_dir / "packages" / pack_name;
+            if (!fs::exists(zip_path)) {
+                send_error(res, "Paquete no encontrado", 404);
+                return;
+            }
+
+            std::ifstream ifs(zip_path, std::ios::binary);
+            if (!ifs.is_open()) {
+                send_error(res, "Error al abrir el paquete", 500);
+                return;
+            }
+            std::string bytes((std::istreambuf_iterator<char>(ifs)),
+                               std::istreambuf_iterator<char>());
+            res.set_content(bytes, "application/zip");
+            res.set_header("Content-Disposition", "attachment; filename=\"" + pack_name + "\"");
         });
 
     server_.Post("/chat",

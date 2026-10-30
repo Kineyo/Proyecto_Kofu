@@ -918,3 +918,284 @@ body {
 ::-webkit-scrollbar-thumb:hover {
     background: rgba(0, 245, 212, 0.4);
 }
+
+/* ==========================================================================
+   Centro de Descarga de Plantillas (Hub Modal & Cards)
+   ========================================================================== */
+
+.topbar-right, .top-bar-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.templates-hub-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, rgba(0, 245, 212, 0.12), rgba(121, 40, 202, 0.18));
+    border: 1px solid var(--border-glow);
+    color: var(--accent-cyan);
+    padding: 8px 16px;
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.templates-hub-btn:hover {
+    background: linear-gradient(135deg, rgba(0, 245, 212, 0.22), rgba(121, 40, 202, 0.3));
+    box-shadow: 0 0 15px rgba(0, 245, 212, 0.35);
+    transform: translateY(-1px);
+    color: #ffffff;
+}
+
+.templates-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(4, 7, 13, 0.82);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    z-index: 999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    animation: fadeInModal 0.2s ease-out;
+}
+
+.templates-modal-backdrop.open {
+    display: flex;
+}
+
+@keyframes fadeInModal {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.templates-modal {
+    width: 100%;
+    max-width: 1040px;
+    max-height: 88vh;
+    background: var(--bg-secondary);
+    border: 1px solid rgba(0, 245, 212, 0.35);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.85), 0 0 35px rgba(0, 245, 212, 0.15);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: slideUpModal 0.25s ease-out;
+}
+
+@keyframes slideUpModal {
+    from { transform: translateY(20px) scale(0.98); }
+    to { transform: translateY(0) scale(1); }
+}
+
+.templates-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 24px 28px;
+    border-bottom: 1px solid var(--border-color);
+    background: rgba(19, 25, 36, 0.6);
+}
+
+.modal-title-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.modal-title-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.modal-badge {
+    background: rgba(0, 245, 212, 0.15);
+    color: var(--accent-cyan);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 4px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-family: var(--font-mono);
+}
+
+.modal-badge-count {
+    background: rgba(121, 40, 202, 0.25);
+    color: #c084fc;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+}
+
+.templates-modal-header h3 {
+    font-size: 20px;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: 0.5px;
+}
+
+.templates-modal-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    max-width: 800px;
+}
+
+.templates-modal-desc code {
+    background: var(--bg-tertiary);
+    color: var(--accent-cyan);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+}
+
+.templates-modal-body {
+    padding: 24px 28px;
+    overflow-y: auto;
+    max-height: calc(88vh - 120px);
+}
+
+.templates-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 18px;
+}
+
+.template-card {
+    background: var(--bg-glass);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.template-card:hover {
+    border-color: var(--border-glow);
+    background: rgba(19, 25, 36, 0.85);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+}
+
+.template-card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.template-card-icon {
+    font-size: 26px;
+    background: var(--bg-tertiary);
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border-color);
+    flex-shrink: 0;
+}
+
+.template-card-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.template-card-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1.2;
+}
+
+.template-card-stats {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+}
+
+.template-card-desc {
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    line-height: 1.45;
+    flex-grow: 1;
+}
+
+.template-card-details {
+    background: var(--bg-primary);
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+    font-size: 11.5px;
+    color: var(--text-muted);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.template-card-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.template-card-item span.kind-badge {
+    font-size: 9.5px;
+    font-weight: 700;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-family: var(--font-mono);
+}
+
+.kind-badge.word {
+    background: rgba(43, 108, 176, 0.25);
+    color: #63b3ed;
+}
+
+.kind-badge.powerpoint {
+    background: rgba(221, 107, 32, 0.25);
+    color: #f6ad55;
+}
+
+.template-download-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: linear-gradient(135deg, rgba(0, 245, 212, 0.15), rgba(0, 180, 216, 0.25));
+    border: 1px solid var(--accent-cyan);
+    color: var(--accent-cyan);
+    padding: 9px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: auto;
+}
+
+.template-download-btn:hover {
+    background: var(--accent-cyan);
+    color: var(--bg-primary);
+    box-shadow: 0 0 16px rgba(0, 245, 212, 0.5);
+    transform: scale(1.02);
+}
