@@ -1,19 +1,25 @@
+# -*- coding: utf-8 -*-
+"""
+AIAssistant para LarIA v1.5
+Orquestación central: Razonamiento e ingesta documental offline.
+"""
+import json
 import os
+import re
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from file_processor import FileProcessor
-
-from office_agent import OfficeAgent, OUTPUT_DIR, ARCHIVOS_DIR
+from office_agent import OfficeAgent, OUTPUT_DIR, ARCHIVOS_DIR, TEMPLATES_DIR
 from ollama_client import NoModelAvailableError
 from reasoning import ChainOfThought, HybridReasoningEngine, ReasoningStep
-from sanitization import TypoCorrector
-from web_research import WebResearcher
+from sanitization import SanitizadorEntrada, TypoCorrector
 
 
 class AIAssistant:
     def __init__(self, use_ollama: bool = True):
+        self.sanitizador = SanitizadorEntrada()
         self.typo_corrector = TypoCorrector()
-        self.web_researcher = WebResearcher()
         self.office_agent = OfficeAgent()
         self.file_processor = FileProcessor()
         self.reasoning_engine = HybridReasoningEngine(use_ollama=use_ollama)
@@ -21,217 +27,243 @@ class AIAssistant:
 
     @staticmethod
     def _permite_internet(modo: str) -> bool:
-        return modo == "online"
+        return modo.lower() == "online"
 
     def _preparar_entrada(self, user_input: str) -> str:
-        return self.typo_corrector.correct_text(user_input)
+        limpio = self.sanitizador.limpiar_texto(user_input)
+        return self.typo_corrector.correct_text(limpio)
 
     def process_request(self, user_input: str, modo: str = "local",
-                         model: Optional[str] = None) -> Tuple[str, List[ReasoningStep]]:
+                         model: Optional[str] = None, api_key: Optional[str] = None) -> Tuple[str, List[ReasoningStep]]:
         entrada = self._preparar_entrada(user_input)
         self.chain_of_thought.steps = []
-        self.chain_of_thought.add_step(f"Analizando solicitud ({modo}, modelo={model or 'auto'}): {entrada}")
+        self.chain_of_thought.add_step(f"Analizando solicitud ({modo}, modelo={model or 'auto'})")
         response, steps = self.reasoning_engine.reason(
-            entrada, allow_external=self._permite_internet(modo), model=model
+            entrada, allow_external=self._permite_internet(modo), model=model, api_key=api_key
         )
-        self.chain_of_thought.add_step("Generando respuesta final")
         return response, steps
 
     def direct_reason(self, user_input: str, modo: str = "local",
-                       model: Optional[str] = None) -> Tuple[str, List[ReasoningStep]]:
+                       model: Optional[str] = None, api_key: Optional[str] = None) -> Tuple[str, List[ReasoningStep]]:
         entrada = self._preparar_entrada(user_input)
         self.chain_of_thought.steps = []
-        self.chain_of_thought.add_step(f"Acceso directo ({modo}, modelo={model or 'auto'}): {entrada}")
+        self.chain_of_thought.add_step(f"Procesando acceso directo ({modo})")
         response, steps = self.reasoning_engine.direct_reason(
-            entrada, allow_external=self._permite_internet(modo), model=model
+            entrada, allow_external=self._permite_internet(modo), model=model, api_key=api_key
         )
-        self.chain_of_thought.add_step("Respuesta directa generada")
         return response, steps
 
-    def research_topic(self, topic: str, modo: str = "online", model: Optional[str] = None, style: str = "académico", target_pages: str = "12 a 15 páginas") -> str:
-        if not self._permite_internet(modo):
-            return "La investigación web requiere modo 'online' (necesita conexión a internet)."
-        
-        # Varias consultas engañando a Ollama
-        consultas = [topic, f"detalles e información técnica sobre {topic}", f"ejemplos y casos de uso de {topic}"]
-        all_results = []
-        for q in consultas:
-            res = self.web_researcher.search_web(q, num_results=3)
-            all_results.extend(res)
-        
-        # Escribiendo todo en crudo en un .md
-        raw_info = self.web_researcher.generate_summary(topic, all_results)
-        raw_path = os.path.join(OUTPUT_DIR, f"raw_research_{topic[:20].replace(' ', '_')}.md")
-        os.makedirs(os.path.dirname(os.path.abspath(raw_path)), exist_ok=True)
-        with open(raw_path, "w", encoding="utf-8") as f:
-            f.write(raw_info)
-            
-        # Ollama genera un documento extenso por capítulos
-        if self.reasoning_engine.ollama_engine:
+    def research_topic(self, topic: str, modo: str = "local", model: Optional[str] = None,
+                       api_key: Optional[str] = None, style: str = "profesional",
+                       source_content: Optional[str] = None) -> str:
+        if source_content:
+            prompt = (
+                f"Actúa como redactor con tono {style}. A partir de la siguiente información extraída, "
+                f"genera un texto completo y estructurado sobre '{topic}'.\n"
+                "Organízalo en subtítulos (## Subtítulo) y párrafos claros.\n\n"
+                f"INFORMACIÓN BASE:\n{source_content[:12000]}"
+            )
+        else:
+            prompt = (
+                f"Actúa como un experto redactor con tono {style}. Escribe un documento detallado sobre '{topic}'.\n"
+                "Estructura el contenido con subtítulos (## Nombre de sección), desarrollo conceptual y conclusiones."
+            )
+
+        if self.reasoning_engine.ollama_engine and self.reasoning_engine.ollama_engine.available:
             try:
-                # Pedimos un índice
-                prompt_indice = f"Genera un índice con 8 capítulos principales para un documento con tono {style} MUY extenso sobre '{topic}'. Devuelve SOLO los nombres de los capítulos, uno por línea."
-                indice_texto, modelo_usado = self.reasoning_engine.ollama_engine.razonar(prompt_indice, model=model)
-                capitulos = [c.strip("-*1234567890. ") for c in indice_texto.split('\n') if len(c.strip()) > 3][:8]
-                
-                if not capitulos:
-                    capitulos = ["Introducción a " + topic, "Contexto y Antecedentes", "Análisis Principal", "Desarrollo del Tema", "Casos de Estudio", "Impacto Actual", "Perspectivas Futuras", "Conclusiones"]
-
-                documento_extenso = ""
-                for cap in capitulos:
-                    prompt_capitulo = (
-                        f"Escribe de manera sumamente extensa, detallada y con tono {style} el capítulo titulado '{cap}' "
-                        f"para un documento sobre '{topic}'.\nEl documento completo medirá unas {target_pages}, por lo que este capítulo DEBE ser extremadamente largo y profundo (equivale a 2 o 3 páginas de contenido denso).\n"
-                        f"REGLA CRÍTICA: NO incluyas ninguna introducción ni conclusión general en este capítulo (a menos que el capítulo se llame expresamente Introducción o Conclusión). Enfócate única y exclusivamente en desarrollar el subtema '{cap}'.\n"
-                        f"Utiliza esta información de internet como base:\n{raw_info[:3000]}"
-                    )
-                    texto_cap, _ = self.reasoning_engine.ollama_engine.razonar(prompt_capitulo, model=model)
-                    documento_extenso += f"\n\n{texto_cap}\n"
-
-                self.reasoning_engine.last_model_used = modelo_usado
-                return documento_extenso.strip()
+                texto, modelo = self.reasoning_engine.ollama_engine.razonar(
+                    prompt,
+                    model=model,
+                    system_prompt="Eres un redactor profesional de alto nivel. Responde en español."
+                )
+                self.reasoning_engine.last_model_used = modelo
+                return texto.strip()
             except Exception:
                 pass
-        
-        return raw_info
 
-    def get_office_tips(self, software: str) -> List[str]:
-        if not self.reasoning_engine.ollama_engine:
-            return ["Instala Ollama para obtener consejos personalizados."]
-        try:
-            prompt = f"Dame 5 consejos rápidos y útiles para usar {software}. Devuélvelos como una lista de viñetas, sin introducciones."
-            respuesta, _ = self.reasoning_engine.ollama_engine.razonar(prompt)
-            return [line.strip("-* ") for line in respuesta.split("\n") if line.strip()]
-        except Exception:
-            return [f"Consejo genérico para {software}: guarda tu documento frecuentemente."]
+        if self._permite_internet(modo):
+            from reasoning import query_external_llm_fallback
+            online_res = query_external_llm_fallback(prompt, api_key=api_key)
+            if online_res:
+                return online_res
+
+        return (
+            f"# {topic}\n\n"
+            f"## Introducción a {topic}\n"
+            f"Este informe presenta un análisis sobre {topic} estructurado para facilitar su comprensión.\n\n"
+            f"## Desarrollo Principal\n"
+            f"Se evalúan los componentes estructurales y mejores prácticas asociadas a {topic}.\n\n"
+            f"## Conclusiones\n"
+            f"En conclusión, el análisis de {topic} demuestra la importancia de mantener un enfoque riguroso."
+        )
+
+    def _resolve_template_path(self, folder: str, template: Optional[str], default_exts: List[str]) -> Optional[str]:
+        if not template:
+            return None
+        t_path = TEMPLATES_DIR / folder / template
+        if t_path.exists():
+            return str(t_path)
+        for ext in default_exts:
+            cand = TEMPLATES_DIR / folder / f"{template}{ext}"
+            if cand.exists():
+                return str(cand)
+            cand2 = TEMPLATES_DIR / folder / f"{template.split('.')[0]}{ext}"
+            if cand2.exists():
+                return str(cand2)
+        return None
 
     def create_presentation(self, topic: str, output_path: Optional[str] = None,
-                             theme: str = "professional", modo: str = "online",
+                             theme: str = "professional", modo: str = "local",
                              filename: Optional[str] = None,
                              template: Optional[str] = None,
-                             model: Optional[str] = None) -> Dict[str, Any]:
-        research = self.research_topic(topic, modo, model, style=theme, target_pages="10 a 15 diapositivas")
-        safe_name = filename or f"presentacion_{topic[:30].replace(' ', '_')}.pptx"
-        out = output_path or os.path.join(OUTPUT_DIR, safe_name)
-        os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
+                             model: Optional[str] = None,
+                             api_key: Optional[str] = None,
+                             source_content: Optional[str] = None) -> Dict[str, Any]:
+        research = self.research_topic(
+            topic, modo=modo, model=model, api_key=api_key, style=theme, source_content=source_content
+        )
+        safe_filename = self.sanitizador.sanitizar_nombre_archivo(
+            filename or f"presentacion_{topic[:30].replace(' ', '_')}.pptx"
+        )
+        if not safe_filename.endswith(".pptx"):
+            safe_filename += ".pptx"
 
-        template_path = None
-        schema = None
-        if template:
-            if not template.endswith(".potx"):
-                template += ".potx"
-            template_path = os.path.join(
-                os.path.dirname(__file__), '..', '..', 'templates', 'powerpoint', template
-            )
-            schema = self.office_agent.get_template_schema(template)
+        out = output_path or str(OUTPUT_DIR / safe_filename)
+        Path(out).resolve().parent.mkdir(parents=True, exist_ok=True)
+
+        template_path = self._resolve_template_path("powerpoint", template, [".potx", ".pptx"])
+        schema = self.office_agent.get_template_schema(template) if template else None
 
         if schema and "slides" in schema:
             slides = []
             for s in schema["slides"]:
                 slide = dict(s)
                 slide["title"] = slide.get("title", "").replace("{topic}", topic)
-                slide["text"] = slide.get("text", "").replace("{intro}", research[:200]).replace(
-                    "{body}", research[:400]).replace("{conclusion}", research[-200:])
+                slide["text"] = slide.get("text", "").replace("{intro}", research[:300]).replace(
+                    "{body}", research[300:1000]).replace("{conclusion}", research[-300:])
                 slides.append(slide)
         else:
-            slides = [
-                {"title": f"Presentación sobre: {topic}", "layout": 0, "subtitle": "Generado automáticamente", "background": True},
-                {"title": "Introducción", "layout": 1, "text": research[:300] + "...", "background": True},
-                {"title": "Conclusiones", "layout": 5, "text": "Para más información, consulte las fuentes originales.", "background": True},
-            ]
+            slides = None
+            prompt_json = (
+                f"Convierte la siguiente investigación en una presentación ejecutiva.\n"
+                f"Devuelve ÚNICAMENTE un arreglo JSON de 6 a 10 objetos con las claves:\n"
+                f"- 'title': título conciso\n"
+                f"- 'layout': 0 para portada, 1 para contenido\n"
+                f"- 'text': puntos clave en viñetas cortas\n\n"
+                f"INVESTIGACIÓN:\n{research[:4000]}"
+            )
+            if self.reasoning_engine.ollama_engine and self.reasoning_engine.ollama_engine.available:
+                try:
+                    raw_json, _ = self.reasoning_engine.ollama_engine.razonar(
+                        prompt_json, model=model,
+                        system_prompt="Devuelve únicamente un JSON válido [ {...}, {...} ]."
+                    )
+                    match = re.search(r"\[.*\]", raw_json, re.DOTALL)
+                    if match:
+                        slides = json.loads(match.group(0))
+                except Exception:
+                    slides = None
+
+            if not slides:
+                slides = [{"title": topic, "layout": 0, "subtitle": "Presentación elaborada con LarIA AI", "background": True}]
+                sections = re.split(r'\n(?=##?\s+)', research)
+                for i, sec in enumerate(sections[:8]):
+                    lines = [l.strip() for l in sec.split("\n") if l.strip()]
+                    if lines:
+                        sec_title = lines[0].lstrip("#").strip() or f"Punto Clave {i+1}"
+                        sec_body = "\n".join(lines[1:])[:400]
+                        slides.append({"title": sec_title, "layout": 1, "text": sec_body, "background": True})
 
         result = self.office_agent.create_powerpoint(out, slides, template_path=template_path, theme=theme)
-        result["filename"] = os.path.basename(out)
+        result["filename"] = Path(out).name
         return result
 
     def create_document(self, topic: str, output_path: Optional[str] = None,
-                         style: str = "professional", modo: str = "online",
+                         style: str = "professional", modo: str = "local",
                          filename: Optional[str] = None,
                          template: Optional[str] = None,
-                         model: Optional[str] = None) -> Dict[str, Any]:
-        import random
-        if not template:
-            word_templates_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'templates', 'word')
-            if os.path.exists(word_templates_dir):
-                available = [f for f in os.listdir(word_templates_dir) if f.endswith(('.dotx', '.docx')) and not f.startswith('~$')]
-                if available:
-                    template = random.choice(available)
-            if style == "professional":
-                style = random.choice(["académico", "creativo", "corporativo", "periodístico", "técnico", "formal", "persuasivo", "analítico"])
+                         model: Optional[str] = None,
+                         api_key: Optional[str] = None,
+                         source_content: Optional[str] = None) -> Dict[str, Any]:
+        research = self.research_topic(
+            topic, modo=modo, model=model, api_key=api_key, style=style, source_content=source_content
+        )
+        safe_filename = self.sanitizador.sanitizar_nombre_archivo(
+            filename or f"documento_{topic[:30].replace(' ', '_')}.docx"
+        )
+        if not safe_filename.endswith(".docx"):
+            safe_filename += ".docx"
 
-        research = self.research_topic(topic, modo, model, style=style, target_pages="12 a 15 hojas")
-        safe_name = filename or f"documento_{topic[:30].replace(' ', '_')}.docx"
-        out = output_path or os.path.join(OUTPUT_DIR, safe_name)
-        os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
+        out = output_path or str(OUTPUT_DIR / safe_filename)
+        Path(out).resolve().parent.mkdir(parents=True, exist_ok=True)
 
-        template_path = None
-        schema = None
-        if template:
-            if not template.endswith(".dotx"):
-                template += ".dotx"
-            template_path = os.path.join(
-                os.path.dirname(__file__), '..', '..', 'templates', 'word', template
-            )
-            schema = self.office_agent.get_template_schema(template)
+        template_path = self._resolve_template_path("word", template, [".dotx", ".docx"])
+        subtitle = "Informe y Análisis Exhaustivo"
 
-        subtitle = "Un análisis exhaustivo"
-        if self.reasoning_engine.ollama_engine:
-            try:
-                sub_prompt = f"Genera un subtítulo corto, elegante y profesional (máximo 6 palabras) para un documento titulado '{topic}'. Devuelve ÚNICAMENTE el subtítulo, sin comillas."
-                sub_res, _ = self.reasoning_engine.ollama_engine.razonar(sub_prompt, model=model)
-                if sub_res.strip():
-                    subtitle = sub_res.strip().strip('"').strip("'")
-            except Exception:
-                pass
+        content = [
+            {"type": "document_title", "text": topic},
+            {"type": "document_subtitle", "text": subtitle},
+        ]
 
-        if schema and "sections" in schema:
-            content = [
-                {"type": "document_title", "text": topic},
-                {"type": "document_subtitle", "text": subtitle}
-            ]
-            for section in schema["sections"]:
-                content.append({"type": "heading", "text": section, "level": 2})
-                content.append({"type": "paragraph", "text": research})
-        else:
-            content = [
-                {"type": "document_title", "text": topic},
-                {"type": "document_subtitle", "text": subtitle},
-                {"type": "paragraph", "text": research},
-                {"type": "heading", "text": "Conocimiento adicional", "level": 2},
-                {"type": "paragraph", "text": "Este documento fue generado automáticamente con información de fuentes públicas."},
-            ]
+        sections = re.split(r'\n(?=##?\s+)', research)
+        for sec in sections:
+            lines = [l for l in sec.split("\n") if l.strip()]
+            if not lines:
+                continue
+            if lines[0].startswith("#"):
+                heading_text = lines[0].lstrip("#").strip()
+                content.append({"type": "heading", "text": heading_text, "level": 2})
+                body = "\n".join(lines[1:])
+                if body.strip():
+                    content.append({"type": "paragraph", "text": body})
+            else:
+                content.append({"type": "paragraph", "text": sec})
 
         result = self.office_agent.create_word_document(out, content, template_path=template_path, style=style)
-        result["filename"] = os.path.basename(out)
+        result["filename"] = Path(out).name
         return result
 
     def digest_file(self, file_path: str, output_path: Optional[str] = None,
-                     instrucciones: Optional[str] = None, model: Optional[str] = None) -> Dict[str, Any]:
+                     instrucciones: Optional[str] = None, model: Optional[str] = None,
+                     api_key: Optional[str] = None) -> Dict[str, Any]:
         extraido = self.file_processor.process_local_file(file_path)
         if not extraido.get("success"):
             return extraido
 
-        texto_preparado = self._preparar_entrada(extraido["text_content"])
+        texto_preparado = self._preparar_entrada(extraido.get("text_content", ""))
+        prompt_instruccion = instrucciones or "Resume y organiza los puntos más relevantes del siguiente documento:"
+        prompt = f"{prompt_instruccion}\n\nCONTENIDO:\n{texto_preparado[:10000]}"
 
-        prompt = instrucciones or "Resume y estructura el siguiente contenido de forma clara y organizada:"
         digestion = texto_preparado
-        if self.reasoning_engine.ollama_engine:
+        if self.reasoning_engine.ollama_engine and self.reasoning_engine.ollama_engine.available:
             try:
-                digestion, modelo_usado = self.reasoning_engine.ollama_engine.razonar(
-                    f"{prompt}\n\n{texto_preparado}", model=model
-                )
-                self.reasoning_engine.last_model_used = modelo_usado
-            except NoModelAvailableError:
-                raise
-            except RuntimeError:
+                res, mod = self.reasoning_engine.ollama_engine.razonar(prompt, model=model)
+                digestion = res
+                self.reasoning_engine.last_model_used = mod
+            except Exception:
                 pass
 
-        resultado = {"success": True, "filename": extraido["filename"], "digestion": digestion}
+        resultado = {"success": True, "filename": extraido.get("filename", ""), "digestion": digestion}
 
         if output_path:
-            os.makedirs(os.path.dirname(os.path.abspath(output_path)) or ".", exist_ok=True)
-            with open(output_path, "w", encoding="utf-8") as f:
-                f.write(digestion)
-            resultado["output_path"] = os.path.abspath(output_path)
+            out_p = Path(output_path).resolve()
+            out_p.parent.mkdir(parents=True, exist_ok=True)
+            out_p.write_text(digestion, encoding="utf-8")
+            resultado["output_path"] = str(out_p)
 
         return resultado
+
+    def get_office_tips(self, software: str) -> List[str]:
+        tips_map = {
+            "word": [
+                "Aplica estilos predefinidos (Título 1, Título 2) para navegación fluida.",
+                "Usa sangría francesa para bibliografías en formato APA.",
+                "Mantén un espaciado entre párrafos de 6 a 8 ptos para evitar saltos dobles innecesarios.",
+            ],
+            "powerpoint": [
+                "Aplica la regla 6x6: máximo 6 líneas y 6 palabras por línea para diapositivas legibles.",
+                "Mantén un contraste alto entre el fondo y el color de texto.",
+                "Usa transiciones sobrias para no distraer a la audiencia.",
+            ]
+        }
+        return tips_map.get(software.lower(), [])

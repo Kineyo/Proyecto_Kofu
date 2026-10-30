@@ -1,76 +1,40 @@
+# Virtual environments
+env/
+env_cpu/
+venv/
+.env
+
+# Build and Dist
+build/
+dist/
+*.spec
+*.deb
+*.rpm
+*.pkg.tar.zst
+*.exe
+
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
+.mypy_cache/
+CONTEXTO
+.laria_cache/
+.kofu_cache/
 
-# Virtual Environments
-venv/
-env/
-ENV/
-env.bak/
-venv.bak/
-
-# Environment Variables
-.env
-.env.*
-.env(backup)
-
-# IDEs and Editors
+# IDEs and Tools
 .vscode/
 *.code-workspace
-.idea/
-*.swp
-*.swo
 
-# Project specific generated directories
-Archivos/
+# App output and specific ignores
 output/
-Propuestas/
-.trash/
-
-# Logs and databases
-*.log
-*.sqlite3
-
-# Office / LibreOffice temporary lock files
-.~lock.*
-*.tmp
+archivos/
+Archivos/
+Archivos_Extra/
 *.bak
-
-# Temporary scripts and garbage files
-test_*.py
-fix_template.py
-inspector.go
-debug.html
-request_http.py
-serverhppd.py
-iniciar.sh
-monitor.py
-
-# Generated docs
-*.docx
-*.pptx
-*.pdf
-
-# Other specific stuff
-backend/DEFOKO\ CATZ.ico
-.sync-exclude.lst
+*.log
+.*.swp
+.~lock.*
+~$*
+*_temp.*
+*.tmp
