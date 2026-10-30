@@ -1,50 +1,63 @@
+# -*- coding: utf-8 -*-
+"""
+OfficeAgent para Kofu v1.5
+Generación nativa y offline de documentos Word (.docx) y presentaciones PowerPoint (.pptx).
+No requiere Microsoft Office ni LibreOffice instalado.
+"""
 import os
+import re
 import shutil
+import tempfile
+import zipfile
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-
-from paths import BASE_DIR, ARCHIVOS_DIR, OUTPUT_DIR
+from paths import BASE_DIR, ARCHIVOS_DIR, OUTPUT_DIR, TEMPLATES_DIR
 
 
 def _ensure_dirs():
-    os.makedirs(ARCHIVOS_DIR, exist_ok=True)
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    ARCHIVOS_DIR.mkdir(parents=True, exist_ok=True)
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def _save_backup(src_path: str) -> str:
     _ensure_dirs()
-    dest = os.path.join(ARCHIVOS_DIR, os.path.basename(src_path))
+    dest = ARCHIVOS_DIR / Path(src_path).name
     shutil.copy2(src_path, dest)
-    return os.path.abspath(dest)
+    return str(dest.resolve())
 
 
 class OfficeAgent:
     PPT_THEMES = {
-        "professional": {"background": (240, 245, 250), "accent": (0, 102, 204), "text": (30, 30, 30)},
-        "modern": {"background": (20, 20, 30), "accent": (0, 255, 200), "text": (240, 240, 240)},
-        "vibrant": {"background": (255, 248, 220), "accent": (255, 87, 51), "text": (30, 30, 30)},
+        "professional": {"background": (245, 248, 252), "accent": (0, 102, 204), "text": (30, 30, 30)},
+        "modern": {"background": (20, 24, 33), "accent": (0, 230, 180), "text": (240, 240, 245)},
+        "vibrant": {"background": (255, 252, 245), "accent": (235, 87, 51), "text": (35, 35, 40)},
     }
     DOC_STYLES = {
-        "professional": {"heading_font": "Arial", "body_font": "Calibri",
-                         "heading_color": (0, 102, 204), "body_color": (30, 30, 30)},
-        "modern": {"heading_font": "Segoe UI", "body_font": "Segoe UI",
-                   "heading_color": (0, 200, 150), "body_color": (50, 50, 50)},
+        "professional": {
+            "heading_font": "Arial", "body_font": "Calibri",
+            "heading_color": (0, 102, 204), "body_color": (35, 35, 35)
+        },
+        "modern": {
+            "heading_font": "Segoe UI", "body_font": "Segoe UI",
+            "heading_color": (0, 180, 140), "body_color": (40, 40, 40)
+        },
     }
 
     TEMPLATE_SCHEMAS = {
         "Coleccion Cuadratica": {
             "slides": [
-                {"title": "{topic}", "layout": 0, "subtitle": "Presentación generada por Kofu", "background": True},
-                {"title": "Introducción", "layout": 1, "text": "{intro}", "background": True},
-                {"title": "Desarrollo", "layout": 1, "text": "{body}", "background": True},
-                {"title": "Conclusiones", "layout": 5, "text": "{conclusion}", "background": True},
+                {"title": "{topic}", "layout": 0, "subtitle": "Presentación generada por Kofu"},
+                {"title": "Introducción", "layout": 1, "text": "{intro}"},
+                {"title": "Desarrollo", "layout": 1, "text": "{body}"},
+                {"title": "Conclusiones", "layout": 1, "text": "{conclusion}"},
             ]
         },
         "Fibras Tejidas": {
             "slides": [
-                {"title": "{topic}", "layout": 0, "subtitle": "Elaborado con Kofu", "background": True},
-                {"title": "Contenido Principal", "layout": 1, "text": "{body}", "background": True},
-                {"title": "Cierre", "layout": 5, "text": "{conclusion}", "background": True},
+                {"title": "{topic}", "layout": 0, "subtitle": "Elaborado con Kofu"},
+                {"title": "Contenido Principal", "layout": 1, "text": "{body}"},
+                {"title": "Cierre y Conclusiones", "layout": 1, "text": "{conclusion}"},
             ]
         },
         "default_word": {
@@ -53,62 +66,60 @@ class OfficeAgent:
     }
 
     def __init__(self):
-        self._win32_available = self._check_win32()
+        self._win32_available = False
 
-    @staticmethod
-    def _check_win32() -> bool:
-        try:
-            import win32com.client  # noqa: F401
-            return True
-        except ImportError:
-            return False
-
-    def _convert_office_template(self, template_path: str, app_name: str, save_format: int,
-                                  ext_from: str, ext_to: str) -> Optional[str]:
-        import zipfile
-        import tempfile
-        import shutil
+    def _convert_office_template(self, template_path: str, ext_from: str, ext_to: str) -> Optional[str]:
+        """Convierte una plantilla (.dotx/.potx) a formato editable en un archivo temporal aislado."""
         template_path = os.path.abspath(template_path)
-        temp_path = template_path.replace(ext_from, ext_to)
+        if not os.path.exists(template_path):
+            return None
+
+        fd, temp_path = tempfile.mkstemp(suffix=ext_to)
+        os.close(fd)
+
         try:
             with tempfile.TemporaryDirectory() as tmpdir:
                 with zipfile.ZipFile(template_path, 'r') as zip_ref:
                     zip_ref.extractall(tmpdir)
-                
+
                 content_types_path = os.path.join(tmpdir, "[Content_Types].xml")
-                with open(content_types_path, 'r', encoding='utf-8') as f:
-                    content = f.read()
-                
-                if ext_from == ".dotx":
-                    content = content.replace(
-                        "application/vnd.openxmlformats-officedocument.wordprocessingml.template.main+xml",
-                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"
-                    )
-                elif ext_from == ".potx":
-                    content = content.replace(
-                        "application/vnd.openxmlformats-officedocument.presentationml.template.main+xml",
-                        "application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"
-                    )
-                    
-                with open(content_types_path, 'w', encoding='utf-8') as f:
-                    f.write(content)
-                    
+                if os.path.exists(content_types_path):
+                    with open(content_types_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+
+                    if ext_from == ".dotx":
+                        content = content.replace(
+                            "application/vnd.openxmlformats-officedocument.wordprocessingml.template.main+xml",
+                            "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"
+                        )
+                    elif ext_from == ".potx":
+                        content = content.replace(
+                            "application/vnd.openxmlformats-officedocument.presentationml.template.main+xml",
+                            "application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"
+                        )
+
+                    with open(content_types_path, 'w', encoding='utf-8') as f:
+                        f.write(content)
+
                 with zipfile.ZipFile(temp_path, 'w', zipfile.ZIP_DEFLATED) as zip_out:
-                    for root, dirs, files in os.walk(tmpdir):
+                    for root, _, files in os.walk(tmpdir):
                         for file in files:
-                            file_path = os.path.join(root, file)
-                            arcname = os.path.relpath(file_path, tmpdir)
-                            zip_out.write(file_path, arcname)
+                            file_p = os.path.join(root, file)
+                            arcname = os.path.relpath(file_p, tmpdir)
+                            zip_out.write(file_p, arcname)
+
             return temp_path
         except Exception:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
             return None
 
     def get_template_schema(self, template_name: str) -> Optional[Dict]:
         if not template_name:
             return None
-        base = os.path.splitext(template_name)[0]
+        base = os.path.splitext(template_name)[0].lower()
         for key in self.TEMPLATE_SCHEMAS:
-            if key.lower() in base.lower():
+            if key.lower() in base:
                 return self.TEMPLATE_SCHEMAS[key]
         return None
 
@@ -116,60 +127,105 @@ class OfficeAgent:
                            template_path: Optional[str] = None, theme: str = "professional",
                            save_backup: bool = True) -> Dict[str, Any]:
         from pptx import Presentation
-        from pptx.util import Pt
+        from pptx.util import Inches, Pt
         from pptx.dml.color import RGBColor
 
         _ensure_dirs()
         temp_file = None
-        if not template_path:
-            from paths import TEMPLATES_DIR
-            template_path = os.path.join(TEMPLATES_DIR, "powerpoint", "Madison Azul.potx")
+
         if template_path and os.path.exists(template_path):
             path = template_path
             if path.endswith(".potx"):
-                temp_file = self._convert_office_template(path, "PowerPoint.Application", 11, ".potx", "_temp.pptx")
-                path = temp_file or None
-            presentation = Presentation(path) if path else Presentation()
+                temp_file = self._convert_office_template(path, ".potx", ".pptx")
+                path = temp_file or template_path
+            try:
+                presentation = Presentation(path)
+            except Exception:
+                presentation = Presentation()
         else:
             presentation = Presentation()
 
         colors = self.PPT_THEMES.get(theme, self.PPT_THEMES["professional"])
+
         for slide_data in slides_data:
-            layout = presentation.slide_layouts[slide_data.get("layout", 0)]
+            layout_idx = int(slide_data.get("layout", 1))
+            # Ajustar layout para evitar IndexError si la plantilla tiene menos layouts
+            max_layout = len(presentation.slide_layouts) - 1
+            layout = presentation.slide_layouts[min(layout_idx, max_layout)]
             slide = presentation.slides.add_slide(layout)
 
+            # Fondo si se solicita
             if slide_data.get("background"):
-                fill = slide.background.fill
-                fill.solid()
-                fill.fore_color.rgb = RGBColor(*colors["background"])
+                try:
+                    fill = slide.background.fill
+                    fill.solid()
+                    fill.fore_color.rgb = RGBColor(*colors["background"])
+                except Exception:
+                    pass
 
-            for shape in slide.shapes:
-                if hasattr(shape, "text") and "text" in slide_data:
-                    shape.text = slide_data["text"]
-                    for p in shape.text_frame.paragraphs:
+            # 1. Asignar título de forma precisa
+            title_text = slide_data.get("title", "")
+            if title_text and slide.shapes.title:
+                slide.shapes.title.text = title_text
+                try:
+                    for p in slide.shapes.title.text_frame.paragraphs:
                         for run in p.runs:
-                            run.font.size = Pt(18)
-                            run.font.color.rgb = RGBColor(*colors["text"])
+                            run.font.size = Pt(32)
+                            run.font.bold = True
+                            run.font.color.rgb = RGBColor(*colors["accent"])
+                except Exception:
+                    pass
 
-            if "title" in slide_data and slide.shapes.title:
-                slide.shapes.title.text = slide_data["title"]
-                for p in slide.shapes.title.text_frame.paragraphs:
-                    for run in p.runs:
-                        run.font.size, run.font.bold = Pt(36), True
-                        run.font.color.rgb = RGBColor(*colors["accent"])
+            # 2. Asignar subtítulo si existe placeholder específico
+            subtitle_text = slide_data.get("subtitle", "")
+            if subtitle_text and len(slide.placeholders) > 1 and slide.placeholders[1] != slide.shapes.title:
+                slide.placeholders[1].text = subtitle_text
 
-            if "subtitle" in slide_data and len(slide.placeholders) > 1:
-                slide.placeholders[1].text = slide_data["subtitle"]
+            # 3. Asignar contenido textual solo al contenedor de cuerpo o crear textbox
+            body_text = slide_data.get("text", "")
+            if body_text:
+                body_shape = None
+                # Buscar placeholder de contenido principal
+                for ph in slide.placeholders:
+                    if ph != slide.shapes.title and (not subtitle_text or ph != slide.placeholders[1]):
+                        body_shape = ph
+                        break
+
+                if body_shape and hasattr(body_shape, "text_frame"):
+                    tf = body_shape.text_frame
+                    tf.text = ""
+                    for line in body_text.split("\n"):
+                        line = line.strip()
+                        if line:
+                            p = tf.add_paragraph() if tf.text else tf.paragraphs[0]
+                            p.text = line
+                            for run in p.runs:
+                                run.font.size = Pt(18)
+                                run.font.color.rgb = RGBColor(*colors["text"])
+                else:
+                    # Crear caja de texto limpia
+                    txBox = slide.shapes.add_textbox(Inches(1), Inches(2), Inches(8), Inches(4.5))
+                    tf = txBox.text_frame
+                    tf.word_wrap = True
+                    for line in body_text.split("\n"):
+                        line = line.strip()
+                        if line:
+                            p = tf.add_paragraph() if tf.text else tf.paragraphs[0]
+                            p.text = line
+                            for run in p.runs:
+                                run.font.size = Pt(18)
+                                run.font.color.rgb = RGBColor(*colors["text"])
 
         output_path = os.path.abspath(output_path)
         presentation.save(output_path)
+
         if temp_file and os.path.exists(temp_file):
-            os.remove(temp_file)
+            try:
+                os.remove(temp_file)
+            except Exception:
+                pass
 
-        backup_path = None
-        if save_backup:
-            backup_path = _save_backup(output_path)
-
+        backup_path = _save_backup(output_path) if save_backup else None
         return {"file_path": output_path, "backup_path": backup_path}
 
     def create_word_document(self, output_path: str, content_data: List[Dict[str, Any]],
@@ -181,62 +237,67 @@ class OfficeAgent:
 
         _ensure_dirs()
         temp_file = None
-        if not template_path:
-            from paths import TEMPLATES_DIR
-            template_path = os.path.join(TEMPLATES_DIR, "word", "Proyecto.dotx")
+
         if template_path and os.path.exists(template_path):
             path = template_path
             if path.endswith(".dotx"):
-                temp_file = self._convert_office_template(path, "Word.Application", 16, ".dotx", "_temp.docx")
-                path = temp_file or None
-            document = Document(path) if path else Document()
+                temp_file = self._convert_office_template(path, ".dotx", ".docx")
+                path = temp_file or template_path
+            try:
+                document = Document(path)
+            except Exception:
+                document = Document()
         else:
             document = Document()
 
         doc_style = self.DOC_STYLES.get(style, self.DOC_STYLES["professional"])
 
-        import re
-
         for content in content_data:
-            ctype = content["type"]
-            if ctype == "heading":
-                level = content.get("level", 1)
-                try:
-                    heading = document.add_heading(content["text"], level=level)
-                except Exception:
-                    heading = document.add_paragraph(content["text"])
-                    heading.runs[0].font.bold = True
-                for run in heading.runs:
-                    run.font.name = doc_style["heading_font"]
-                    run.font.color.rgb = RGBColor(*doc_style["heading_color"])
-                    run.font.bold = True
-                    run.font.size = Pt({1: 24, 2: 18}.get(level, 14))
-            elif ctype == "document_title":
-                clean_title = content["text"].replace("**", "").replace("*", "").replace("#", "").strip()
+            ctype = content.get("type", "paragraph")
+            text = content.get("text", "")
+
+            if ctype == "document_title":
+                clean_title = text.replace("**", "").replace("*", "").replace("#", "").strip()
                 heading = document.add_heading(clean_title, level=0)
                 for run in heading.runs:
                     run.font.name = doc_style["heading_font"]
                     run.font.color.rgb = RGBColor(*doc_style["heading_color"])
+
             elif ctype == "document_subtitle":
-                clean_sub = content["text"].replace("**", "").replace("*", "").replace("#", "").strip()
+                clean_sub = text.replace("**", "").replace("*", "").replace("#", "").strip()
                 try:
                     p = document.add_paragraph(clean_sub, style='Subtitle')
                 except Exception:
                     p = document.add_paragraph(clean_sub)
-                    p.runs[0].font.bold = True
+                    if p.runs:
+                        p.runs[0].font.bold = True
                 for run in p.runs:
                     run.font.name = doc_style["heading_font"]
                     run.font.color.rgb = RGBColor(*doc_style["heading_color"])
+
+            elif ctype == "heading":
+                level = int(content.get("level", 1))
+                try:
+                    heading = document.add_heading(text, level=min(level, 4))
+                except Exception:
+                    heading = document.add_paragraph(text)
+                    if heading.runs:
+                        heading.runs[0].font.bold = True
+                for run in heading.runs:
+                    run.font.name = doc_style["heading_font"]
+                    run.font.color.rgb = RGBColor(*doc_style["heading_color"])
+                    run.font.size = Pt({1: 22, 2: 17, 3: 14}.get(level, 12))
+
             elif ctype == "paragraph":
-                blocks = content["text"].split("\n")
+                blocks = text.split("\n")
                 for block in blocks:
                     block = block.strip()
                     if not block:
                         continue
-                    
+
+                    # Subencabezados en markdown dentro del texto
                     if block.startswith("#"):
-                        level = len(block) - len(block.lstrip("#"))
-                        level = min(level, 9)
+                        level = min(len(block) - len(block.lstrip("#")), 4)
                         clean_text = block.lstrip("#").strip()
                         try:
                             heading = document.add_heading(clean_text, level=level)
@@ -250,14 +311,17 @@ class OfficeAgent:
 
                     paragraph = document.add_paragraph()
                     paragraph.alignment = content.get("alignment", WD_ALIGN_PARAGRAPH.JUSTIFY)
-                    
+
+                    # Formateo básico de negritas y cursivas
                     parts = re.split(r'(\*\*.*?\*\*|\*.*?\*)', block)
                     for part in parts:
-                        if not part: continue
+                        if not part:
+                            continue
                         run = paragraph.add_run()
-                        run.font.name, run.font.size = doc_style["body_font"], Pt(11)
+                        run.font.name = doc_style["body_font"]
+                        run.font.size = Pt(11)
                         run.font.color.rgb = RGBColor(*doc_style["body_color"])
-                        
+
                         if part.startswith("**") and part.endswith("**"):
                             run.text = part[2:-2]
                             run.bold = True
@@ -266,30 +330,37 @@ class OfficeAgent:
                             run.italic = True
                         else:
                             run.text = part
+
             elif ctype == "table":
-                data = content["data"]
-                table = document.add_table(rows=len(data), cols=len(data[0]))
-                table.style = "Table Grid"
-                for i, row in enumerate(data):
-                    for j, cell_text in enumerate(row):
-                        cell = table.rows[i].cells[j]
-                        cell.text = cell_text
-                        for p in cell.paragraphs:
-                            for run in p.runs:
-                                run.font.name = doc_style["body_font"]
-                                if i == 0:
-                                    run.font.bold = True
-                                    run.font.color.rgb = RGBColor(*doc_style["heading_color"])
-            elif ctype == "image" and os.path.exists(content["path"]):
-                document.add_picture(content["path"], width=Inches(content.get("width", 6)))
+                data = content.get("data", [])
+                if data and isinstance(data, list) and isinstance(data[0], list):
+                    table = document.add_table(rows=len(data), cols=len(data[0]))
+                    table.style = "Table Grid"
+                    for i, row in enumerate(data):
+                        for j, cell_text in enumerate(row):
+                            cell = table.rows[i].cells[j]
+                            cell.text = str(cell_text)
+                            for p in cell.paragraphs:
+                                for run in p.runs:
+                                    run.font.name = doc_style["body_font"]
+                                    if i == 0:
+                                        run.font.bold = True
+                                        run.font.color.rgb = RGBColor(*doc_style["heading_color"])
+
+            elif ctype == "image" and os.path.exists(content.get("path", "")):
+                try:
+                    document.add_picture(content["path"], width=Inches(content.get("width", 5.5)))
+                except Exception:
+                    pass
 
         output_path = os.path.abspath(output_path)
         document.save(output_path)
+
         if temp_file and os.path.exists(temp_file):
-            os.remove(temp_file)
+            try:
+                os.remove(temp_file)
+            except Exception:
+                pass
 
-        backup_path = None
-        if save_backup:
-            backup_path = _save_backup(output_path)
-
+        backup_path = _save_backup(output_path) if save_backup else None
         return {"file_path": output_path, "backup_path": backup_path}

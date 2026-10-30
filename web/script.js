@@ -1,27 +1,27 @@
-const URL_CHAT = '';
-const URL_OFFICE = '';
-const URL_RESEARCH = '';
-const URL_OLLAMA = '';
-const URL_TEMPLATES = '';
- 
+// ==========================================================================
+// KOFU AI v1.5 // Frontend Controller
+// ==========================================================================
+
+const API_BASE = window.location.origin;
+
 let allTemplates = { powerpoint: [], word: [] };
 let currentMode = 'local';
 let activeTasks = 0;
 let selectedFile = null;
 
-// --- Model selection state (layer logic: only call the needed model) ---
-let chatModel = localStorage.getItem('kofu_chat_model') || 'llama3.2:3b';
-let docModel = localStorage.getItem('kofu_doc_model') || 'gemma3:12b';
-let visionModel = localStorage.getItem('kofu_vision_model') || 'qwen2.5vl:latest';
+let chatModel = localStorage.getItem('kofu_chat_model') || '';
+let docModel = localStorage.getItem('kofu_doc_model') || '';
 let availableModels = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
-    const badge = document.getElementById('portBadge');
-    if (badge) badge.textContent = `:Unificado`;
-    await Promise.all([loadTemplates(), loadOllamaModels()]);
+    const portBadge = document.getElementById('portBadge');
+    if (portBadge) {
+        portBadge.textContent = window.location.port ? `:${window.location.port}` : ':8000';
+    }
+
     setupEventListeners();
+    await Promise.all([loadTemplates(), loadOllamaModels()]);
     updateTaskCounter();
-    restoreModelSelections();
 });
 
 function setupEventListeners() {
@@ -38,69 +38,91 @@ function setupEventListeners() {
     const closeModelSettings = document.getElementById('closeModelSettings');
     const refreshModelsBtn = document.getElementById('refreshModelsBtn');
 
-    shutdownBtn.addEventListener('click', () => {
-        if (confirm('Apagar')) {
-            window.close();
+    // Botón de Apagado
+    shutdownBtn.addEventListener('click', async () => {
+        if (confirm('¿Deseas apagar el servidor Kofu AI?')) {
+            try {
+                await fetch(`${API_BASE}/system/shutdown`, { method: 'POST' });
+            } catch (_) {}
+            document.body.innerHTML = `
+                <div style="height:100vh;display:flex;align-items:center;justify-content:center;background:#07090e;color:#8a99ad;font-family:sans-serif;text-align:center;">
+                    <div>
+                        <h1 style="color:#00f5d4;margin-bottom:12px;">⚡ Kofu AI v1.5</h1>
+                        <p>El servidor local se ha detenido correctamente.</p>
+                        <p style="font-size:12px;margin-top:8px;color:#536275;">Puedes cerrar esta pestaña o ventana.</p>
+                    </div>
+                </div>
+            `;
+            setTimeout(() => window.close(), 1000);
         }
     });
 
-    sendBtn.addEventListener('click', sendMessage);
+    sendBtn.addEventListener('click', handleUserSubmit);
 
     messageInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
-            sendMessage();
+            handleUserSubmit();
         }
     });
 
-    messageInput.addEventListener('input', autoResize);
+    messageInput.addEventListener('input', autoResizeTextarea);
     documentType.addEventListener('change', updateTemplateDropdown);
     localModeBtn.addEventListener('click', () => switchMode('local'));
     onlineModeBtn.addEventListener('click', () => switchMode('online'));
 
+    // Guardar API Key localmente
     const savedApiKey = localStorage.getItem('kofu_api_key');
     if (savedApiKey) apiKeyInput.value = savedApiKey;
     apiKeyInput.addEventListener('input', (e) => {
-        localStorage.setItem('kofu_api_key', e.target.value);
+        localStorage.setItem('kofu_api_key', e.target.value.trim());
     });
 
     fileInput.addEventListener('change', handleFileSelect);
     removeFileBtn.addEventListener('click', removeSelectedFile);
 
-    // Model settings panel
-    modelSettingsBtn.addEventListener('click', toggleModelSettings);
+    // Ajustes de Modelos
+    modelSettingsBtn.addEventListener('click', () => {
+        document.getElementById('modelSettingsPanel').classList.toggle('open');
+    });
     closeModelSettings.addEventListener('click', () => {
         document.getElementById('modelSettingsPanel').classList.remove('open');
     });
 
-    // Model select change listeners
     document.getElementById('chatModelSelect').addEventListener('change', (e) => {
         chatModel = e.target.value;
         localStorage.setItem('kofu_chat_model', chatModel);
+        updateActiveModelBadge();
     });
     document.getElementById('docModelSelect').addEventListener('change', (e) => {
         docModel = e.target.value;
         localStorage.setItem('kofu_doc_model', docModel);
     });
-    document.getElementById('visionModelSelect').addEventListener('change', (e) => {
-        visionModel = e.target.value;
-        localStorage.setItem('kofu_vision_model', visionModel);
-    });
 
-    // Refresh models button
     refreshModelsBtn.addEventListener('click', loadOllamaModels);
 }
 
-function toggleModelSettings() {
-    const panel = document.getElementById('modelSettingsPanel');
-    panel.classList.toggle('open');
+function autoResizeTextarea() {
+    const textarea = document.getElementById('messageInput');
+    textarea.style.height = 'auto';
+    textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
 }
 
 function handleFileSelect(e) {
     if (e.target.files && e.target.files[0]) {
         selectedFile = e.target.files[0];
         document.getElementById('fileName').textContent = selectedFile.name;
-        document.getElementById('filePreview').style.display = 'block';
+        document.getElementById('filePreview').style.display = 'flex';
+        
+        const docType = document.getElementById('documentType').value;
+        const hint = document.getElementById('fileActionHint');
+        if (docType === 'word') {
+            hint.textContent = 'Se extraerá el contenido para redactar un documento Word.';
+        } else if (docType === 'powerpoint') {
+            hint.textContent = 'Se extraerá el contenido para estructurar una presentación.';
+        } else {
+            hint.textContent = 'Listo para extracción y análisis offline.';
+        }
     }
 }
 
@@ -115,103 +137,108 @@ function switchMode(mode) {
     document.getElementById('localModeBtn').classList.toggle('active', mode === 'local');
     document.getElementById('onlineModeBtn').classList.toggle('active', mode === 'online');
     document.getElementById('apiConfig').style.display = mode === 'online' ? 'block' : 'none';
+    
+    const engineBadge = document.getElementById('engineBadge');
+    if (engineBadge) {
+        engineBadge.textContent = mode === 'online' ? 'HYBRID CLOUD' : 'OFFLINE READY';
+        engineBadge.style.color = mode === 'online' ? '#00f5d4' : '#00b4d8';
+    }
 }
 
 function getApiKey() {
     if (currentMode !== 'online') return null;
-    const key = document.getElementById('apiKeyInput').value.trim();
-    return key || null;
+    return document.getElementById('apiKeyInput').value.trim() || null;
 }
 
 function updateTaskCounter() {
     document.getElementById('activeTasks').textContent = activeTasks;
 }
 
-function incrementTaskCounter() {
+function incrementTask() {
     activeTasks++;
     updateTaskCounter();
 }
 
-function decrementTaskCounter() {
+function decrementTask() {
     if (activeTasks > 0) activeTasks--;
     updateTaskCounter();
 }
 
-async function loadOllamaModels() {
-    const listContainer = document.getElementById('ollamaModelsList');
-    listContainer.innerHTML = '<p class="loading-models">Cargando modelos...</p>';
-    try {
-        const response = await fetch(`${URL_OLLAMA}/ollama/models`);
-        if (!response.ok) {
-            listContainer.innerHTML = '<p class="loading-models">No se pudo conectar</p>';
-            return;
-        }
-        const data = await response.json();
-        availableModels = data.models || [];
-        
-        // Update sidebar list
-        if (availableModels.length === 0) {
-            listContainer.innerHTML = '<p class="loading-models">No hay modelos instalados</p>';
-        } else {
-            listContainer.innerHTML = '';
-            availableModels.forEach(name => {
-                const tag = document.createElement('span');
-                tag.className = 'model-tag';
-                tag.textContent = name;
-                tag.title = name;
-                listContainer.appendChild(tag);
-            });
-        }
-
-        // Update model selects
-        populateModelSelect('chatModelSelect', chatModel);
-        populateModelSelect('docModelSelect', docModel);
-        populateModelSelect('visionModelSelect', visionModel);
-    } catch (_) {
-        listContainer.innerHTML = '<p class="loading-models">Ollama no disponible</p>';
-        // Still populate selects with defaults
-        populateModelSelect('chatModelSelect', chatModel);
-        populateModelSelect('docModelSelect', docModel);
-        populateModelSelect('visionModelSelect', visionModel);
+function updateActiveModelBadge() {
+    const label = document.getElementById('activeModelLabel');
+    if (label) {
+        label.textContent = chatModel || 'Auto Ollama';
     }
 }
 
-function populateModelSelect(selectId, currentValue) {
-    const select = document.getElementById(selectId);
-    select.innerHTML = '';
+async function loadOllamaModels() {
+    const listContainer = document.getElementById('ollamaModelsList');
+    listContainer.innerHTML = '<div class="loader-shim">Consultando Ollama...</div>';
     
-    // Ensure current value is in the list
-    const allOptions = new Set(availableModels);
-    allOptions.add(currentValue);
-    
-    // Add defaults if not present
-    const defaults = { chatModelSelect: 'llama3.2:3b', docModelSelect: 'gemma3:12b', visionModelSelect: 'qwen2.5vl:latest' };
-    if (defaults[selectId]) allOptions.add(defaults[selectId]);
+    try {
+        const response = await fetch(`${API_BASE}/ollama/models`);
+        if (!response.ok) throw new Error();
+        const data = await response.json();
+        availableModels = data.models || [];
 
-    Array.from(allOptions).sort().forEach(name => {
-        const option = document.createElement('option');
-        option.value = name;
-        option.textContent = name;
-        if (name === currentValue) option.selected = true;
-        select.appendChild(option);
-    });
+        if (availableModels.length === 0) {
+            listContainer.innerHTML = '<div class="loader-shim">No hay modelos instalados. Ejecuta: ollama pull llama3.2</div>';
+        } else {
+            listContainer.innerHTML = '';
+            availableModels.forEach(m => {
+                const tag = document.createElement('div');
+                tag.className = 'model-tag';
+                tag.textContent = m;
+                tag.title = m;
+                listContainer.appendChild(tag);
+            });
+
+            // Si el modelo guardado no existe, seleccionar el primero disponible
+            if (!chatModel || !availableModels.includes(chatModel)) {
+                chatModel = availableModels[0];
+                localStorage.setItem('kofu_chat_model', chatModel);
+            }
+            if (!docModel || !availableModels.includes(docModel)) {
+                docModel = availableModels[0];
+                localStorage.setItem('kofu_doc_model', docModel);
+            }
+        }
+
+        populateModelSelects();
+        updateActiveModelBadge();
+    } catch (_) {
+        listContainer.innerHTML = '<div class="loader-shim">⚠️ Ollama no disponible localmente.</div>';
+        populateModelSelects();
+    }
 }
 
-function restoreModelSelections() {
+function populateModelSelects() {
     const chatSel = document.getElementById('chatModelSelect');
     const docSel = document.getElementById('docModelSelect');
-    const visSel = document.getElementById('visionModelSelect');
-    if (chatSel.value !== chatModel) chatSel.value = chatModel;
-    if (docSel.value !== docModel) docSel.value = docModel;
-    if (visSel.value !== visionModel) visSel.value = visionModel;
+    chatSel.innerHTML = '';
+    docSel.innerHTML = '';
+
+    const models = availableModels.length > 0 ? availableModels : ['llama3.2:latest', 'llama3:latest', 'mistral:latest'];
+    models.forEach(m => {
+        const opt1 = document.createElement('option');
+        opt1.value = m;
+        opt1.textContent = m;
+        if (m === chatModel) opt1.selected = true;
+        chatSel.appendChild(opt1);
+
+        const opt2 = document.createElement('option');
+        opt2.value = m;
+        opt2.textContent = m;
+        if (m === docModel) opt2.selected = true;
+        docSel.appendChild(opt2);
+    });
 }
 
 async function loadTemplates() {
     try {
-        const response = await fetch(`${URL_TEMPLATES}/templates`);
+        const response = await fetch(`${API_BASE}/templates`);
         if (!response.ok) return;
-        const data = await response.json();
-        allTemplates = data;
+        allTemplates = await response.json();
         updateTemplateDropdown();
     } catch (_) {}
 }
@@ -219,43 +246,36 @@ async function loadTemplates() {
 function updateTemplateDropdown() {
     const docType = document.getElementById('documentType').value;
     const templateSelect = document.getElementById('templateSelect');
-    templateSelect.innerHTML = '<option value="">Plantilla</option>';
+    templateSelect.innerHTML = '<option value="">Plantilla por defecto</option>';
 
     if (docType && allTemplates[docType]) {
-        allTemplates[docType].forEach(template => {
-            const option = document.createElement('option');
-            option.value = template;
-            option.textContent = template;
-            templateSelect.appendChild(option);
+        allTemplates[docType].forEach(t => {
+            const opt = document.createElement('option');
+            opt.value = t;
+            opt.textContent = t.replace(/\.[^.]+$/, '');
+            templateSelect.appendChild(opt);
         });
     }
 }
 
-function autoResize() {
-    const textarea = document.getElementById('messageInput');
-    textarea.style.height = 'auto';
-    textarea.style.height = Math.min(textarea.scrollHeight, 150) + 'px';
-}
-
 function addMessage(text, role, isError = false, downloadInfo = null) {
     const chatContainer = document.getElementById('chatContainer');
-
-    const welcomeMessage = chatContainer.querySelector('.welcome-message');
-    if (welcomeMessage) welcomeMessage.remove();
+    const welcome = chatContainer.querySelector('.welcome-hero');
+    if (welcome) welcome.remove();
 
     const messageDiv = document.createElement('div');
-    messageDiv.className = 'message';
+    messageDiv.className = `message ${role}`;
 
     const avatar = document.createElement('div');
     avatar.className = `message-avatar ${role}-avatar`;
-    avatar.textContent = role === 'user' ? 'T' : 'K';
+    avatar.textContent = role === 'user' ? 'TÚ' : 'KF';
 
     const content = document.createElement('div');
     content.className = 'message-content';
 
     const roleLabel = document.createElement('div');
     roleLabel.className = 'message-role';
-    roleLabel.textContent = role === 'user' ? 'Tú' : 'Kofu';
+    roleLabel.textContent = role === 'user' ? 'USUARIO' : 'KOFU NEURAL';
 
     const messageText = document.createElement('div');
     messageText.className = 'message-text' + (isError ? ' error-message' : '');
@@ -265,12 +285,18 @@ function addMessage(text, role, isError = false, downloadInfo = null) {
     content.appendChild(messageText);
 
     if (downloadInfo) {
-        const dlBtn = document.createElement('a');
-        dlBtn.className = 'download-btn';
-        dlBtn.href = downloadInfo.url;
-        dlBtn.download = downloadInfo.filename;
-        dlBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg> Descargar ${downloadInfo.filename}`;
-        content.appendChild(dlBtn);
+        const card = document.createElement('div');
+        card.className = 'download-card';
+        card.innerHTML = `
+            <div class="download-info">
+                <span class="download-icon">${downloadInfo.isWord ? '📄' : '📊'}</span>
+                <span class="download-filename">${downloadInfo.filename}</span>
+            </div>
+            <a href="${downloadInfo.url}" download="${downloadInfo.filename}" class="download-btn">
+                Descargar Archivo
+            </a>
+        `;
+        content.appendChild(card);
     }
 
     messageDiv.appendChild(avatar);
@@ -280,196 +306,165 @@ function addMessage(text, role, isError = false, downloadInfo = null) {
 }
 
 function showTypingIndicator() {
+    removeTypingIndicator();
     const chatContainer = document.getElementById('chatContainer');
     const typingDiv = document.createElement('div');
-    typingDiv.className = 'message';
+    typingDiv.className = 'message ai';
     typingDiv.id = 'typingIndicator';
 
-    const avatar = document.createElement('div');
-    avatar.className = 'message-avatar ai-avatar';
-    avatar.textContent = 'K';
-
-    const content = document.createElement('div');
-    content.className = 'message-content';
-
-    const typingIndicator = document.createElement('div');
-    typingIndicator.className = 'typing-indicator';
-    typingIndicator.innerHTML = `
-        <div class="typing-dot"></div>
-        <div class="typing-dot"></div>
-        <div class="typing-dot"></div>
+    typingDiv.innerHTML = `
+        <div class="message-avatar ai-avatar">KF</div>
+        <div class="message-content">
+            <div class="message-role">KOFU NEURAL</div>
+            <div class="typing-dots">
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            </div>
+        </div>
     `;
-
-    content.appendChild(typingIndicator);
-    typingDiv.appendChild(avatar);
-    typingDiv.appendChild(content);
     chatContainer.appendChild(typingDiv);
     chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
 function removeTypingIndicator() {
-    const indicator = document.getElementById('typingIndicator');
-    if (indicator) indicator.remove();
+    const ind = document.getElementById('typingIndicator');
+    if (ind) ind.remove();
 }
 
-async function sendMessage() {
-    const messageInput = document.getElementById('messageInput');
-    const message = messageInput.value.trim();
+async function handleUserSubmit() {
+    const input = document.getElementById('messageInput');
+    const message = input.value.trim();
+    const docType = document.getElementById('documentType').value;
+    const template = document.getElementById('templateSelect').value;
 
     if (!message && !selectedFile) return;
 
     if (currentMode === 'online') {
-        const apiKey = document.getElementById('apiKeyInput').value.trim();
-        if (!apiKey) {
-            addMessage('Por favor ingresa una API key para usar el modo Online.', 'ai', true);
+        const key = getApiKey();
+        if (!key) {
+            addMessage('Por favor ingresa tu API Key en la barra lateral para utilizar el modo Online.', 'ai', true);
             return;
         }
     }
 
+    // Mostrar mensaje del usuario
     if (message) {
         addMessage(message, 'user');
     } else if (selectedFile) {
-        addMessage(`Archivo subido: ${selectedFile.name}`, 'user');
+        addMessage(`📄 Archivo adjuntado: ${selectedFile.name}`, 'user');
     }
 
-    messageInput.value = '';
-    autoResize();
+    input.value = '';
+    autoResizeTextarea();
 
     const sendBtn = document.getElementById('sendBtn');
     sendBtn.disabled = true;
-    incrementTaskCounter();
+    incrementTask();
     showTypingIndicator();
 
     try {
-        const docType = document.getElementById('documentType').value;
-        const template = document.getElementById('templateSelect').value;
-
         if (selectedFile) {
+            // Pipeline real de archivo:
+            // 1. Extraer contenido mediante el ingester offline
+            const fileData = await uploadAndIngestFile(selectedFile);
+            
             if (docType) {
-                // LAYER: Document model used for doc creation from file
-                await createDocumentFromFile(selectedFile, docType, template);
+                // 2. Si se solicitó Word o PowerPoint, generar documento usando el contenido extraído
+                const topic = message || selectedFile.name.replace(/\.[^.]+$/, '');
+                await generateOfficeDocument(topic, docType, template, fileData.text_content);
             } else {
-                // LAYER: Vision model used for file processing (MarkItDown)
-                await processFile(selectedFile);
+                // 3. Si era solo chat, responder con resumen o análisis del archivo
+                removeTypingIndicator();
+                let summary = `✅ **Archivo "${fileData.filename}" analizado exitosamente.**\n\n`;
+                summary += `Tipo: ${fileData.file_type.toUpperCase()} | Longitud: ${fileData.text_content.length} caracteres.\n\n`;
+                summary += `Contenido extraído:\n\n${fileData.text_content.substring(0, 1500)}`;
+                if (fileData.text_content.length > 1500) {
+                    summary += "\n\n... [Texto truncado para vista previa]";
+                }
+                addMessage(summary, 'ai');
             }
-        } else if (docType && (message.toLowerCase().includes('crear') || message.toLowerCase().includes('hacer'))) {
-            // LAYER: Document model used
-            await createDocument(message, docType, template);
-        } else if (currentMode === 'online' && isResearchQuery(message)) {
-            const result = await researchTopic(message);
-            removeTypingIndicator();
-            addMessage(result, 'ai');
+            removeSelectedFile();
+        } else if (docType) {
+            // Generación de documento directa desde texto
+            await generateOfficeDocument(message, docType, template, null);
         } else {
-            // LAYER: Chat model used
-            const result = await chatWithAI(message);
+            // Conversación normal
+            const responseText = await sendChatMessage(message);
             removeTypingIndicator();
-            addMessage(result, 'ai');
+            addMessage(responseText, 'ai');
         }
-
-        removeSelectedFile();
-    } catch (error) {
+    } catch (err) {
         removeTypingIndicator();
-        const msg = error.message || '';
-        const isKnown = msg.includes('seguridad') || msg.includes('bloqueada') ||
-            msg.includes('No hay modelo disponible') || msg.includes('418');
-        addMessage(isKnown ? msg : 'El servidor no está listo. Verifica que Kofu esté corriendo.', 'ai', true);
+        addMessage(`Error: ${err.message || 'Fallo de comunicación con el motor Kofu.'}`, 'ai', true);
     } finally {
         sendBtn.disabled = false;
-        decrementTaskCounter();
+        decrementTask();
     }
 }
 
-async function processFile(file) {
+async function uploadAndIngestFile(file) {
     const formData = new FormData();
     formData.append('file', file);
-    // LAYER: Send vision model for MarkItDown processing
-    formData.append('vision_model', visionModel);
     if (getApiKey()) formData.append('api_key', getApiKey());
 
-    const response = await fetch(`${URL_CHAT}/files/upload`, {
+    const resp = await fetch(`${API_BASE}/files/upload`, {
         method: 'POST',
         body: formData,
     });
 
-    if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.detail || data.error || 'Error al procesar el archivo');
+    if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.detail || 'Error al procesar el archivo cargado.');
     }
 
-    const data = await response.json();
-    if (data.success) {
-        let result = `✅ Archivo "${data.filename}" procesado.\n\n📄 Contenido extraído:\n\n`;
-        result += data.text_content.substring(0, 1000);
-        if (data.text_content.length > 1000) result += '\n... (contenido truncado)';
-        removeTypingIndicator();
-        addMessage(result, 'ai');
-    } else {
-        throw new Error(data.error || 'Error desconocido al procesar archivo');
-    }
+    return await resp.json();
 }
 
-async function createDocumentFromFile(file, docType, template) {
+async function generateOfficeDocument(topic, docType, template, sourceContent) {
     const isWord = docType === 'word';
     const endpoint = isWord ? '/office/word/download' : '/office/powerpoint/download';
-    const filename = isWord ? 'documento_kofu.docx' : 'presentacion_kofu.pptx';
-    const topic = file.name.replace(/\.[^.]+$/, '');
+    const cleanTopic = topic || (isWord ? 'Documento_Kofu' : 'Presentacion_Kofu');
+    const safeTopicName = cleanTopic.substring(0, 30).replace(/[^a-zA-Z0-9_-]/g, '_');
+    const filename = isWord ? `Kofu_${safeTopicName}.docx` : `Kofu_${safeTopicName}.pptx`;
 
     const body = {
-        topic,
+        topic: cleanTopic,
         filename,
         template: template || undefined,
         style: isWord ? 'professional' : undefined,
         theme: isWord ? undefined : 'professional',
         modo: currentMode,
-        // LAYER: Document model for document generation
-        model: docModel,
+        model: docModel || chatModel,
         api_key: getApiKey(),
+        source_content: sourceContent || undefined,
     };
 
-    const response = await fetch(`${URL_OFFICE}${endpoint}`, {
+    const resp = await fetch(`${API_BASE}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
     });
 
-    if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.detail || data.error || 'Error al crear el documento');
+    if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.detail || 'Fallo al generar el archivo ofimático.');
     }
 
-    const blob = await response.blob();
+    const blob = await resp.blob();
     const url = URL.createObjectURL(blob);
-    const backupSaved = response.headers.get('X-Backup-Saved') === 'true';
-    const backupPath = response.headers.get('X-Backup-Path') || '';
-    const backupName = backupPath.split('/').pop() || filename;
+    const backupSaved = resp.headers.get('X-Backup-Saved') === 'true';
 
     removeTypingIndicator();
-    let msg = `✅ ${isWord ? 'Documento Word' : 'Presentación PowerPoint'} generado desde "${file.name}".`;
-    if (backupSaved) msg += `\n📁 Copia guardada en Archivos/${backupName}`;
+    let msg = `✅ ${isWord ? 'Documento Word (.docx)' : 'Presentación PowerPoint (.pptx)'} generado con éxito.`;
+    if (template) msg += `\n🎨 Plantilla aplicada: ${template.replace(/\.[^.]+$/, '')}`;
+    if (backupSaved) msg += `\n💾 Copia de respaldo guardada en la carpeta /archivos.`;
 
-    addMessage(msg, 'ai', false, { url, filename });
+    addMessage(msg, 'ai', false, { url, filename, isWord });
 }
 
-function isResearchQuery(message) {
-    const keywords = ['investiga', 'busca', 'qué es', 'que es', 'explica', 'informacion sobre', 'información sobre'];
-    return keywords.some(k => message.toLowerCase().includes(k));
-}
-
-function extractTopic(message) {
-    const patterns = [
-        /(?:investiga|busca|qué es|que es|explica|informaci[oó]n sobre)[\s]+(.+?)(?:\?|$|,|\.)/i,
-        /sobre\s+(.+?)(?:\?|$|,|\.)/i,
-    ];
-    for (const pattern of patterns) {
-        const match = message.match(pattern);
-        if (match && match[1]) return match[1].trim();
-    }
-    return message.trim();
-}
-
-async function chatWithAI(message) {
-    // LAYER: Only chat model is used here
-    const response = await fetch(`${URL_CHAT}/chat`, {
+async function sendChatMessage(message) {
+    const resp = await fetch(`${API_BASE}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -481,78 +476,11 @@ async function chatWithAI(message) {
         }),
     });
 
-    if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.detail || data.error || 'Error al comunicarse con el servidor');
+    if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.detail || 'Error al comunicarse con Ollama.');
     }
 
-    const data = await response.json();
+    const data = await resp.json();
     return data.response;
-}
-
-async function researchTopic(message) {
-    const topic = extractTopic(message);
-
-    // LAYER: Research uses document model for content generation
-    const response = await fetch(`${URL_RESEARCH}/research`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            topic,
-            modo: 'online',
-            model: docModel,
-            api_key: getApiKey(),
-        }),
-    });
-
-    if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.detail || data.error || 'Error al buscar información');
-    }
-
-    const data = await response.json();
-    return data.summary || `No se encontró información sobre "${topic}".`;
-}
-
-async function createDocument(topic, docType, template) {
-    const isWord = docType === 'word';
-    const endpoint = isWord ? '/office/word/download' : '/office/powerpoint/download';
-    const filename = isWord ? `documento_${topic.substring(0, 20).replace(/\s+/g, '_')}.docx`
-                             : `presentacion_${topic.substring(0, 20).replace(/\s+/g, '_')}.pptx`;
-
-    const body = {
-        topic,
-        filename,
-        template: template || undefined,
-        style: isWord ? 'professional' : undefined,
-        theme: isWord ? undefined : 'professional',
-        modo: currentMode,
-        // LAYER: Document model for doc generation
-        model: docModel,
-        api_key: getApiKey(),
-    };
-
-    const response = await fetch(`${URL_CHAT}${endpoint}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-    });
-
-    if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.detail || data.error || 'Error al crear el documento');
-    }
-
-    const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
-    const backupSaved = response.headers.get('X-Backup-Saved') === 'true';
-    const backupPath = response.headers.get('X-Backup-Path') || '';
-    const backupName = backupPath.split('/').pop() || filename;
-
-    removeTypingIndicator();
-    let msg = `✅ ${isWord ? 'Documento Word' : 'Presentación PowerPoint'} listo.`;
-    if (template) msg += `\n📌 Plantilla aplicada: ${template}`;
-    if (backupSaved) msg += `\n📁 Copia guardada en Archivos/${backupName}`;
-
-    addMessage(msg, 'ai', false, { url, filename });
 }

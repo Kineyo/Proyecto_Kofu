@@ -3,130 +3,188 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kofu v1.0</title>
+    <title>KOFU AI v1.5 // Neural Office System</title>
     <link rel="icon" type="image/x-icon" href="Uta icon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <div class="cyber-background"></div>
     <div class="container">
+        <!-- Barra lateral cibernética -->
         <aside class="sidebar">
             <div class="sidebar-header">
-                <h1>Kofu</h1>
-                <p class="sidebar-subtitle">v1,0 <span id="portBadge" class="port-badge"></span></p>
+                <div class="brand-row">
+                    <div class="brand-glitch" data-text="KOFU">KOFU</div>
+                    <span class="version-tag">v1.5</span>
+                </div>
+                <div class="sidebar-subtitle">
+                    <span class="status-dot pulse"></span>
+                    <span id="systemStatusText">Offline Neural Engine</span>
+                    <span id="portBadge" class="port-badge">127.0.0.1</span>
+                </div>
             </div>
 
-            <div class="mode-selector">
-                <label class="mode-label">Modo de IA:</label>
+            <!-- Selector de Modo -->
+            <div class="control-group">
+                <label class="section-label">MODO DE OPERACIÓN</label>
                 <div class="mode-toggle">
-                    <button id="localModeBtn" class="mode-btn active" data-mode="local">Local</button>
-                    <button id="onlineModeBtn" class="mode-btn" data-mode="online">Online</button>
+                    <button id="localModeBtn" class="mode-btn active" data-mode="local">
+                        <span class="mode-icon">⚡</span> 100% Offline
+                    </button>
+                    <button id="onlineModeBtn" class="mode-btn" data-mode="online">
+                        <span class="mode-icon">🌐</span> Cloud / Web
+                    </button>
                 </div>
             </div>
 
-            <div class="model-config" id="modelConfig">
-                <label>Modelos de Ollama (Local):</label>
+            <!-- Estado de Ollama / Modelos -->
+            <div class="control-group" id="modelConfig">
+                <div class="section-label-row">
+                    <label class="section-label">MODELOS DISPONIBLES</label>
+                    <button id="refreshModelsBtn" class="icon-action-btn" title="Refrescar catálogo">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                            <path d="M23 4v6h-6M1 20v-6h6"/>
+                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                        </svg>
+                    </button>
+                </div>
                 <div id="ollamaModelsList" class="ollama-models-list">
-                    <p class="loading-models">Cargando modelos...</p>
+                    <div class="loader-shim">Sincronizando con Ollama...</div>
                 </div>
-                <button id="refreshModelsBtn" class="refresh-models-btn">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M23 4v6h-6M1 20v-6h6"/>
-                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-                    </svg>
-                    Refrescar modelos
-                </button>
             </div>
 
-            <div class="api-config" id="apiConfig">
-                <label for="apiKeyInput">API Key (Online):</label>
-                <input type="password" id="apiKeyInput" class="api-input" placeholder="Ingresa tu API key...">
+            <!-- Entrada de API Key para Modo Online -->
+            <div class="control-group" id="apiConfig" style="display: none;">
+                <label class="section-label" for="apiKeyInput">CLAVE API (GEMINI / OPENAI)</label>
+                <div class="cyber-input-wrapper">
+                    <input type="password" id="apiKeyInput" class="api-input" placeholder="sk-... o AIzaSy...">
+                </div>
             </div>
 
-            <div class="task-counter" id="taskCounter">
-                Tareas activas: <span id="activeTasks">0</span>
+            <!-- Telemetría y estadísticas -->
+            <div class="sidebar-stats">
+                <div class="stat-card">
+                    <span class="stat-title">MOTOR ACTIVO</span>
+                    <span class="stat-value" id="activeModelLabel">Ollama Local</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-title">TAREAS ACTIVAS</span>
+                    <span class="stat-value highlight" id="activeTasks">0</span>
+                </div>
             </div>
 
             <button id="shutdownBtn" class="shutdown-btn">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M18.36 6.64a9 9 0 1 1-12.73 0M12 2v10"/>
                 </svg>
-                Apagar
+                Apagar Servidor
             </button>
         </aside>
 
+        <!-- Contenido principal -->
         <main class="main-content">
-            <div class="top-bar">
-                <button id="modelSettingsBtn" class="model-settings-btn" title="Configuración de modelos">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="3"/>
-                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                    </svg>
-                </button>
-            </div>
+            <!-- Barra superior -->
+            <header class="top-bar">
+                <div class="top-bar-left">
+                    <span class="system-chip">KOFU v1.5 // AUTONOMOUS AGENT</span>
+                    <span class="engine-badge" id="engineBadge">OFFLINE READY</span>
+                </div>
+                <div class="top-bar-right">
+                    <button id="modelSettingsBtn" class="model-settings-btn" title="Configurar Modelos">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"/>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                        </svg>
+                        <span>Ajustes de Modelo</span>
+                    </button>
+                </div>
+            </header>
 
+            <!-- Panel Flotante de Selección de Modelos -->
             <div class="model-settings-panel" id="modelSettingsPanel">
                 <div class="model-settings-header">
-                    <h3>Configuración de Modelos</h3>
+                    <h3>⚡ Arquitectura de Modelos</h3>
                     <button id="closeModelSettings" class="close-panel-btn">&times;</button>
                 </div>
                 <div class="model-setting">
-                    <label for="chatModelSelect">💬 Modelo para Chat:</label>
+                    <label for="chatModelSelect">💬 Modelo de Conversación y Chat:</label>
                     <select id="chatModelSelect" class="model-select"></select>
                 </div>
                 <div class="model-setting">
-                    <label for="docModelSelect">📄 Modelo para Documentos:</label>
+                    <label for="docModelSelect">📄 Modelo de Documentos y Presentaciones:</label>
                     <select id="docModelSelect" class="model-select"></select>
                 </div>
-                <div class="model-setting">
-                    <label for="visionModelSelect">👁️ Modelo de Visión (MarkItDown):</label>
-                    <select id="visionModelSelect" class="model-select"></select>
+                <p class="panel-tip">💡 Los modelos se detectan automáticamente desde tu instalación de Ollama local.</p>
+            </div>
+
+            <!-- Contenedor del Chat y Resultados -->
+            <div class="chat-container" id="chatContainer">
+                <div class="welcome-hero">
+                    <div class="hero-glow"></div>
+                    <div class="hero-icon">⚡</div>
+                    <h2>KOFU NEURAL OFFICE v1.5</h2>
+                    <p class="hero-desc">Asistente autónomo de generación de documentos Word (.docx) y presentaciones PowerPoint (.pptx). Con motor de ingesta offline e inteligencia generativa local.</p>
+                    <div class="hero-chips">
+                        <span class="chip">📄 Word Nativo</span>
+                        <span class="chip">📊 PowerPoint Dinámico</span>
+                        <span class="chip">🔒 100% Offline</span>
+                        <span class="chip">🧠 Motor Ollama</span>
+                    </div>
                 </div>
             </div>
 
-            <div class="chat-container" id="chatContainer"></div>
-
+            <!-- Barra de Opciones y Entrada de Datos -->
             <div class="input-container">
                 <div class="options-bar">
-                    <select id="documentType" class="select-input">
-                        <option value="">Tipo de documento</option>
-                        <option value="word">Word</option>
-                        <option value="powerpoint">PowerPoint</option>
-                    </select>
+                    <div class="option-pill">
+                        <label for="documentType" class="pill-label">Formato:</label>
+                        <select id="documentType" class="select-input">
+                            <option value="">Chat General</option>
+                            <option value="word">Documento Word (.docx)</option>
+                            <option value="powerpoint">Presentación (.pptx)</option>
+                        </select>
+                    </div>
 
-                    <select id="templateSelect" class="select-input">
-                        <option value="">Plantilla</option>
-                    </select>
+                    <div class="option-pill" id="templatePill">
+                        <label for="templateSelect" class="pill-label">Plantilla:</label>
+                        <select id="templateSelect" class="select-input">
+                            <option value="">Plantilla por defecto</option>
+                        </select>
+                    </div>
 
-                    <label class="file-upload-label">
-                        <input type="file" id="fileInput" class="file-input" accept=".pdf,.docx,.pptx,.xlsx,.xls,.csv,.txt,.md,.html,.jpg,.jpeg,.png,.gif,.bmp,.tiff,.wav,.mp3,.m4a,.ogg,.flac,.epub,.zip,.msg,.ipynb">
-                        <span class="file-upload-text">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
-                            </svg>
-                            Subir archivo
-                        </span>
+                    <label class="file-upload-btn" title="Cargar archivo para analizar o convertir">
+                        <input type="file" id="fileInput" class="file-input" accept=".pdf,.docx,.pptx,.xlsx,.xls,.csv,.txt,.md,.html,.jpg,.jpeg,.png,.webp">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                        </svg>
+                        <span class="file-btn-text">Adjuntar Documento</span>
                     </label>
                 </div>
 
-                <div id="filePreview" class="file-preview" style="display: none;">
-                    <div class="file-info">
-                        <span id="fileName" class="file-name"></span>
-                        <button id="removeFileBtn" class="remove-file-btn">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M18 6L6 18M6 6l12 12"/>
-                            </svg>
-                        </button>
+                <!-- Previsualización de archivo cargado -->
+                <div id="filePreview" class="file-preview-card" style="display: none;">
+                    <div class="file-preview-content">
+                        <div class="file-preview-icon">📎</div>
+                        <div class="file-meta">
+                            <span id="fileName" class="file-name">archivo.pdf</span>
+                            <span class="file-hint" id="fileActionHint">Listo para ser ingerido y procesado</span>
+                        </div>
                     </div>
+                    <button id="removeFileBtn" class="remove-file-btn" title="Quitar archivo">&times;</button>
                 </div>
 
+                <!-- Barra de entrada de texto -->
                 <div class="input-bar">
                     <textarea 
                         id="messageInput" 
-                        placeholder="Escribe tu mensaje..."
+                        placeholder="Escribe el tema de tu documento, presentación o pregunta..."
                         rows="1"
                     ></textarea>
-                    <button id="sendBtn" class="send-btn">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <button id="sendBtn" class="send-btn" title="Ejecutar instrucción">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                             <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
                         </svg>
                     </button>

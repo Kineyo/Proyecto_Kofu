@@ -1,15 +1,7 @@
+# -*- coding: utf-8 -*-
 """
-Motor de razonamiento de Kofu.
-
-- ReasoningEngine: reglas locales, sin dependencias externas, siempre disponible.
-- HybridReasoningEngine: intenta reglas + Ollama (modelo dinámico, resuelto por
-  request) y, solo en modo 'online', cae a un LLM en la nube si Ollama falla.
-
-Antes (api.py): HybridReasoningEngine se construía con un `model_name` fijo
-que se pasaba una sola vez a OllamaEngine al arrancar. Ahora el modelo viaja
-como parámetro en cada llamada a reason()/direct_reason(), así que un mismo
-proceso puede atender una request con "llama3:latest" y la siguiente con
-"gemma4:latest" sin reiniciar nada.
+Motor de razonamiento para Kofu v1.5
+Híbrido: Detección inteligente de intenciones + Ollama local + Fallback online seguro.
 """
 import os
 import re
@@ -19,13 +11,15 @@ from typing import List, Optional, Tuple
 
 import requests
 from config import CONTEXT_EXPIRATION_HOURS
-
+from paths import CACHE_DIR
 from ollama_client import OllamaEngine, NoModelAvailableError
 
 
 class ReasoningStep:
     def __init__(self, step_num: int, thought: str, evidence: str = ""):
-        self.step_num, self.thought, self.evidence = step_num, thought, evidence
+        self.step_num = step_num
+        self.thought = thought
+        self.evidence = evidence
 
     def __str__(self):
         return f"Paso {self.step_num}: {self.thought}" + (f" ({self.evidence})" if self.evidence else "")
@@ -42,222 +36,217 @@ class ChainOfThought:
         return "\n".join(f"{i + 1}. {s}" for i, s in enumerate(self.steps))
 
     def explain(self) -> str:
-        return f"Proceso de razonamiento:\n{self.get_chain()}\n\nConclusión final derivada de los pasos anteriores."
-
-
-class KnowledgeRule:
-    def __init__(self, name: str, conditions: List[str], conclusion: str):
-        self.name, self.conditions, self.conclusion = name, conditions, conclusion
-
-
-class ReasoningEngine:
-    """Motor basado en reglas: rápido, sin dependencias externas, siempre disponible."""
-
-    def __init__(self):
-        self.rules = [
-            KnowledgeRule("crear_documento_pentesting",
-                          ["necesita informacion sobre pentesting", "necesita un documento de seguridad"],
-                          "crear_documento_pentesting"),
-            KnowledgeRule("crear_presentacion_pentesting",
-                          ["necesita una presentacion de pentesting", "presentacion de seguridad"],
-                          "crear_presentacion_pentesting"),
-            KnowledgeRule("investigar_tema",
-                          ["necesita informacion sobre", "quiere saber sobre", "investiga", "busca"],
-                          "investigar_tema"),
-            KnowledgeRule("dar_consejos_office",
-                          ["consejos de", "tips de", "trucos de", "como usar"],
-                          "dar_consejos_office"),
-            KnowledgeRule("explicar_pentesting", ["que es", "explica", "que son"], "explicar_pentesting"),
-        ]
-        self.facts: List[str] = []
-        self.thinking_steps: List[ReasoningStep] = []
-
-    def add_fact(self, fact: str):
-        self.facts.append(fact.lower())
-
-    def clear_facts(self):
-        self.facts, self.thinking_steps = [], []
-
-    def _extract_topic(self, text: str) -> str:
-        for pattern in (r"sobre\s+(.+?)(?:\?|$|,|\.)", r"de\s+(.+?)(?:\?|$|,|\.)", r"acerca\s+de\s+(.+?)(?:\?|$|,|\.)"):
-            match = re.search(pattern, text.lower())
-            if match:
-                return match.group(1).strip()
-        return ""
-
-    def _fallback_response(self, user_input: str) -> str:
-        low = user_input.lower()
-        if any(w in low for w in ("pentesting", "seguridad", "hacker")):
-            return ("Sobre pentesting:\n• Metodologías: OWASP, PTES, OSSTMM, NIST\n"
-                    "• Fases: Reconocimiento → Escaneo → Enumeración → Explotación → Post-explotación → Informes\n"
-                    "• Herramientas: Nmap, Metasploit, Wireshark, Burp Suite\n\n¿Creo un documento o presentación?")
-        if any(w in low for w in ("powerpoint", "presentación", "pptx", "ppt")):
-            return "Puedo crear una presentación con temas professional, modern o vibrant. ¿Sobre qué tema?"
-        if any(w in low for w in ("word", "documento", "docx")):
-            return "Puedo crear un documento Word con estilo professional o modern. ¿Sobre qué tema?"
-        return ("Puedo ayudarte con:\n• Pentesting\n• Documentos Word\n• Presentaciones PowerPoint\n"
-                "• Investigación web\n• Consejos de Office\n\n¿Qué te gustaría hacer?")
-
-    def reason(self, user_input: str) -> Tuple[str, List[ReasoningStep]]:
-        self.clear_facts()
-        self.add_fact(user_input)
-        self.thinking_steps.append(ReasoningStep(1, "Analizando entrada del usuario", user_input))
-
-        topic = self._extract_topic(user_input)
-        if topic:
-            self.thinking_steps.append(ReasoningStep(2, f"Tema identificado: {topic}"))
-
-        for rule in self.rules:
-            if any(cond in user_input.lower() for cond in rule.conditions):
-                self.thinking_steps.append(ReasoningStep(3, f"Regla aplicada: {rule.name}"))
-                return self._fallback_response(user_input), self.thinking_steps
-
-        self.thinking_steps.append(ReasoningStep(3, "Ninguna regla específica aplicada"))
-        return self._fallback_response(user_input), self.thinking_steps
-
-    def get_thinking_process(self) -> str:
-        return "\n".join(str(s) for s in self.thinking_steps)
+        return f"Proceso de razonamiento:\n{self.get_chain()}\n\nConclusión generada."
 
 
 def query_external_llm_fallback(prompt: str, api_key: Optional[str] = None) -> Optional[str]:
-    """Fallback opcional a un LLM en la nube (solo si OPENAI_API_KEY está configurada o se provee api_key de Gemini).
-    Solo se invoca en modo 'online', y solo si Ollama falló por una razón
-    transitoria (no cuando falta el modelo, ver HybridReasoningEngine)."""
+    """Fallback seguro a LLMs en la nube cuando se especifica en modo online."""
     if api_key:
+        # 1. Intentar Gemini usando header de seguridad
         try:
-            resp = requests.post(
-                f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}",
-                headers={"Content-Type": "application/json"},
-                json={"contents": [{"parts": [{"text": prompt}]}]},
-                timeout=30,
-            )
-            resp.raise_for_status()
-            return resp.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
+            url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+            headers = {
+                "Content-Type": "application/json",
+                "x-goog-api-key": api_key,
+            }
+            payload = {"contents": [{"parts": [{"text": prompt}]}]}
+            resp = requests.post(url, headers=headers, json=payload, timeout=30)
+            if resp.status_code == 200:
+                data = resp.json()
+                return data["candidates"][0]["content"]["parts"][0]["text"].strip()
         except Exception:
             pass
 
+        # 2. Intentar OpenAI API si parece una key de OpenAI (sk-...)
+        if api_key.startswith("sk-"):
+            try:
+                resp = requests.post(
+                    "https://api.openai.com/v1/chat/completions",
+                    headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                    json={
+                        "model": "gpt-4o-mini",
+                        "messages": [{"role": "user", "content": prompt}],
+                        "temperature": 0.7,
+                    },
+                    timeout=30,
+                )
+                if resp.status_code == 200:
+                    return resp.json()["choices"][0]["message"]["content"].strip()
+            except Exception:
+                pass
+
     env_api_key = os.getenv("OPENAI_API_KEY")
-    if not env_api_key:
-        return None
-    try:
-        resp = requests.post(
-            "https://api.openai.com/v1/chat/completions",
-            headers={"Authorization": f"Bearer {env_api_key}", "Content-Type": "application/json"},
-            json={"model": "gpt-3.5-turbo", "messages": [{"role": "user", "content": prompt}],
-                  "max_tokens": 500, "temperature": 0.7},
-            timeout=30,
+    if env_api_key:
+        try:
+            resp = requests.post(
+                "https://api.openai.com/v1/chat/completions",
+                headers={"Authorization": f"Bearer {env_api_key}", "Content-Type": "application/json"},
+                json={
+                    "model": "gpt-4o-mini",
+                    "messages": [{"role": "user", "content": prompt}],
+                    "temperature": 0.7,
+                },
+                timeout=30,
+            )
+            if resp.status_code == 200:
+                return resp.json()["choices"][0]["message"]["content"].strip()
+        except Exception:
+            pass
+
+    return None
+
+
+class ReasoningEngine:
+    """Motor de intenciones y respuestas base para Kofu."""
+
+    def __init__(self):
+        self.thinking_steps: List[ReasoningStep] = []
+
+    def _extract_topic(self, text: str) -> str:
+        for pattern in (
+            r"(?:sobre|acerca de|de|del tema)\s+(.+?)(?:\?|$|,|\.)",
+            r"(?:crear|hacer|generar|elaborar)\s+(?:un\s+|una\s+)?(?:documento|presentaci[oó]n|texto|informe)\s+(?:de|sobre)?\s*(.+?)(?:\?|$|,|\.)",
+        ):
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                return match.group(1).strip()
+        return text.strip()
+
+    def reason(self, user_input: str) -> Tuple[str, List[ReasoningStep]]:
+        self.thinking_steps = [ReasoningStep(1, "Analizando intención del usuario", user_input)]
+        topic = self._extract_topic(user_input)
+        if topic and topic != user_input:
+            self.thinking_steps.append(ReasoningStep(2, f"Tema identificado: {topic}"))
+
+        low = user_input.lower()
+        if any(w in low for w in ("powerpoint", "presentación", "presentacion", "diapositivas", "ppt")):
+            return (
+                f"Puedo crear una presentación en PowerPoint sobre '{topic}'. "
+                "Selecciona una plantilla en el menú desplegable si deseas un diseño específico y pulsa Enviar.",
+                self.thinking_steps,
+            )
+        if any(w in low for w in ("word", "documento", "informe", "ensayo", "docx")):
+            return (
+                f"Puedo generar un documento Word completo sobre '{topic}'. "
+                "Puedes elegir una plantilla en el menú superior para aplicar estilos profesionales.",
+                self.thinking_steps,
+            )
+        return (
+            "Hola, soy Kofu. Puedo ayudarte a:\n"
+            "• Redactar y estructurar documentos Word (.docx)\n"
+            "• Crear presentaciones PowerPoint automáticas (.pptx)\n"
+            "• Procesar y resumir archivos y documentos offline\n"
+            "¿Sobre qué tema deseas trabajar hoy?",
+            self.thinking_steps,
         )
-        resp.raise_for_status()
-        return resp.json()["choices"][0]["message"]["content"].strip()
-    except Exception:
-        return None
 
 
 class HybridReasoningEngine(ReasoningEngine):
-    """Reglas locales primero; si Ollama está disponible, lo usa para generar
-    respuestas más ricas con el modelo pedido por el frontend en esa request.
-    Si Ollama falla por un error transitorio, cae al fallback basado en reglas
-    y, en último caso (modo online), a un LLM externo opcional.
-
-    Si Ollama responde pero NO tiene instalado ni el modelo pedido ni ninguno
-    de los modelos de fallback (config.DEFAULT_OLLAMA_MODELS), NO se enmascara
-    el error: se deja propagar NoModelAvailableError para que la ruta HTTP
-    conteste 418 "Error 418; No hay modelo disponible", tal como pide el
-    frontend en vez de devolver una respuesta silenciosa basada solo en reglas.
-    """
-
     def __init__(self, use_ollama: bool = True):
         super().__init__()
         self.ollama_engine = OllamaEngine() if use_ollama else None
         self.chain_of_thought = ChainOfThought()
         self.last_model_used: Optional[str] = None
-        self.context_file = os.path.join(os.path.dirname(__file__), "__pycache__", "CONTEXTO")
+        self.context_file = CACHE_DIR / "contexto_activo.txt"
+        self._lock = threading.Lock()
 
     def _leer_contexto(self) -> str:
-        if os.path.exists(self.context_file):
-            if CONTEXT_EXPIRATION_HOURS > 0:
-                edad_horas = (time.time() - os.path.getmtime(self.context_file)) / 3600.0
-                if edad_horas > CONTEXT_EXPIRATION_HOURS:
-                    try:
-                        os.remove(self.context_file)
-                    except Exception:
-                        pass
-                    return ""
+        with self._lock:
+            if not self.context_file.exists():
+                return ""
             try:
-                with open(self.context_file, "r", encoding="utf-8") as f:
-                    return f.read().strip()
+                if CONTEXT_EXPIRATION_HOURS > 0:
+                    edad_horas = (time.time() - self.context_file.stat().st_mtime) / 3600.0
+                    if edad_horas > CONTEXT_EXPIRATION_HOURS:
+                        self.context_file.unlink(missing_ok=True)
+                        return ""
+                return self.context_file.read_text(encoding="utf-8").strip()
             except Exception:
-                pass
-        return ""
+                return ""
 
     def _guardar_contexto_async(self, prompt: str, respuesta: str, model: Optional[str]):
         if not self.ollama_engine:
             return
-        contexto_previo = self._leer_contexto()
-        instruccion = (
-            "Resume la siguiente interacción en una sola oración concisa (máximo 15 palabras) "
-            "desde la perspectiva del asistente para recordar de qué hablaron. Escribe SOLO la oración de resumen.\n\n"
-            f"Contexto previo: {contexto_previo}\n"
-            f"Usuario: {prompt}\n"
-            f"Asistente: {respuesta}\n"
-            "Resumen:"
-        )
+
         def tarea():
             try:
-                resumen, _ = self.ollama_engine.razonar(instruccion, model=model, system_prompt="Eres una IA que resume interacciones en 1 oración.")
+                contexto_previo = self._leer_contexto()
+                instruccion = (
+                    "Resume la interacción en una sola oración breve (máx 20 palabras) para recordar el tema de conversación.\n"
+                    f"Contexto previo: {contexto_previo}\n"
+                    f"Usuario: {prompt[:300]}\n"
+                    f"Asistente: {respuesta[:300]}\n"
+                    "Resumen:"
+                )
+                resumen, _ = self.ollama_engine.razonar(
+                    instruccion, model=model, system_prompt="Eres un memorizador conciso."
+                )
                 if resumen:
-                    os.makedirs(os.path.dirname(self.context_file), exist_ok=True)
-                    with open(self.context_file, "w", encoding="utf-8") as f:
-                        f.write(resumen.strip())
+                    with self._lock:
+                        self.context_file.write_text(resumen.strip(), encoding="utf-8")
             except Exception:
                 pass
+
         threading.Thread(target=tarea, daemon=True).start()
 
     def _respuesta_con_ollama(self, prompt: str, system_prompt: Optional[str] = None,
-                               allow_external: bool = False, model: Optional[str] = None,
-                               api_key: Optional[str] = None) -> Optional[str]:
-        if self.ollama_engine:
+                                allow_external: bool = False, model: Optional[str] = None,
+                                api_key: Optional[str] = None) -> Optional[str]:
+        if self.ollama_engine and self.ollama_engine.available:
             try:
                 contexto_previo = self._leer_contexto()
-                prompt_con_contexto = f"Contexto de la conversación anterior: {contexto_previo}\n\n{prompt}" if contexto_previo else prompt
-                respuesta, modelo_usado = self.ollama_engine.razonar(prompt_con_contexto, model=model, system_prompt=system_prompt)
+                prompt_con_contexto = (
+                    f"Contexto de la conversación previa: {contexto_previo}\n\nPregunta: {prompt}"
+                    if contexto_previo else prompt
+                )
+                respuesta, modelo_usado = self.ollama_engine.razonar(
+                    prompt_con_contexto, model=model, system_prompt=system_prompt
+                )
                 self.last_model_used = modelo_usado
                 self._guardar_contexto_async(prompt, respuesta, model=modelo_usado)
                 return respuesta
             except NoModelAvailableError:
-                raise  # caso explícito: no se enmascara, sube hasta la ruta HTTP como 418
-            except RuntimeError as e:
-                print("ERROR OLLAMA:", repr(e))
-                pass  # error transitorio (timeout, conexión): se intenta el fallback normal
-        return query_external_llm_fallback(prompt, api_key=api_key) if allow_external else None
+                if not allow_external:
+                    raise
+            except Exception:
+                pass
+
+        if allow_external:
+            return query_external_llm_fallback(prompt, api_key=api_key)
+        return None
 
     def direct_reason(self, user_input: str, allow_external: bool = False,
                        model: Optional[str] = None, api_key: Optional[str] = None) -> Tuple[str, List[ReasoningStep]]:
-        self.clear_facts()
-        self.add_fact(user_input)
-        self.thinking_steps.append(ReasoningStep(1, "Acceso directo sin sanitización", user_input))
-
+        self.thinking_steps = [ReasoningStep(1, "Procesamiento directo")]
         respuesta = self._respuesta_con_ollama(
             user_input,
-            system_prompt="Eres un asistente de razonamiento directo. Responde de forma técnica y concisa.",
+            system_prompt="Eres Kofu, un asistente de IA técnico, preciso y directo. Responde con claridad y excelente formato.",
             allow_external=allow_external,
             model=model,
             api_key=api_key,
         )
         if respuesta:
-            self.thinking_steps.append(ReasoningStep(2, "Respuesta generada con IA"))
+            self.thinking_steps.append(ReasoningStep(2, f"Respuesta generada con {self.last_model_used or 'IA'}"))
             return respuesta, self.thinking_steps
 
-        self.thinking_steps.append(ReasoningStep(2, "Respuesta directa sin motor generativo"))
         return user_input, self.thinking_steps
 
     def reason(self, user_input: str, allow_external: bool = False,
                model: Optional[str] = None, api_key: Optional[str] = None) -> Tuple[str, List[ReasoningStep]]:
         respuesta_reglas, pasos = super().reason(user_input)
-
-        respuesta_ia = self._respuesta_con_ollama(user_input, allow_external=allow_external, model=model, api_key=api_key)
-        if respuesta_ia:
-            pasos.append(ReasoningStep(len(pasos) + 1, "Respuesta enriquecida con IA generativa"))
-            return respuesta_ia, pasos
+        try:
+            respuesta_ia = self._respuesta_con_ollama(
+                user_input,
+                allow_external=allow_external,
+                model=model,
+                api_key=api_key,
+            )
+            if respuesta_ia:
+                pasos.append(ReasoningStep(len(pasos) + 1, f"Generado con {self.last_model_used or 'Ollama'}"))
+                return respuesta_ia, pasos
+        except NoModelAvailableError:
+            raise
+        except Exception:
+            pass
 
         return respuesta_reglas, pasos

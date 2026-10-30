@@ -32,5 +32,7 @@ Archivos_Extra/
 *.log
 .*.swp
 .~lock.*
-auto_compile_linux.sh
+~$*
+*_temp.*
+*.tmp
 auto_compile_linux.sh

@@ -1,80 +1,102 @@
-import os
-import sys
-import subprocess
-import time
-import multiprocessing
-import uvicorn
-import threading
+# -*- coding: utf-8 -*-
+"""
+Kofu AI v1.5 - Orquestador Principal
+"""
 import argparse
+import multiprocessing
+import os
+import subprocess
+import sys
+import threading
+import time
+import urllib.request
 import webbrowser
-from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import RedirectResponse
+
+import uvicorn
 from api import app
+from config import APP_VERSION, APP_NAME, find_free_port, PREFERRED_PORTS, DEFAULT_OLLAMA_URL
+from paths import WEB_DIR
+
 
 def start_ollama():
-    from config import DEFAULT_OLLAMA_URL
+    """Verifica si Ollama está respondiendo o intenta iniciarlo localmente."""
     try:
-        import urllib.request
+        urllib.request.urlopen(DEFAULT_OLLAMA_URL, timeout=1.5)
+    except Exception:
         try:
-            urllib.request.urlopen(DEFAULT_OLLAMA_URL, timeout=1)
-        except Exception:
-            print("Iniciando servicio nativo de Ollama en segundo plano...")
-            subprocess.Popen(["ollama", "serve"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            print("Iniciando servicio de Ollama en segundo plano...")
+            subprocess.Popen(
+                ["ollama", "serve"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
             time.sleep(2)
+        except Exception:
+            pass
+
+
+def main():
+    parser = argparse.ArgumentParser(description=f"{APP_NAME} Server v{APP_VERSION}")
+    parser.add_argument("--browser", action="store_true", help="Abrir en navegador web estándar en lugar de PyWebView")
+    parser.add_argument("--port", type=int, default=None, help="Puerto personalizado para el servidor")
+    args, _ = parser.parse_known_args()
+
+    print("==================================================")
+    print(f"      {APP_NAME} v{APP_VERSION} - Servidor Autónomo")
+    print("==================================================")
+
+    start_ollama()
+
+    port = args.port or find_free_port(PREFERRED_PORTS)
+    url = f"http://127.0.0.1:{port}"
+
+    # Guardar puerto para frontend si es necesario
+    try:
+        (WEB_DIR / '.port').write_text(str(port))
     except Exception:
         pass
 
-def run_server():
-    config = uvicorn.Config(app, host="127.0.0.1", port=8000, log_level="warning", ws="none")
+    config = uvicorn.Config(
+        app,
+        host="127.0.0.1",
+        port=port,
+        log_level="warning",
+        ws="none"
+    )
     server = uvicorn.Server(config)
-    server.run()
-
-def main():
-    parser = argparse.ArgumentParser(description="Kofu AI Server")
-    parser.add_argument("--browser", action="store_true", help="Launch in web browser instead of PyWebView")
-    args, unknown = parser.parse_known_args()
-
-    print("========================================")
-    print("   Kofu v1.1.02.01 (Beta) - Servidor de IA")
-    print("========================================")
-    
-    start_ollama()
-    
-    print("Levantando servicio unificado (Backend + Frontend) en puerto 8000...")
-    
-    # Configure Web Server and API
-    from paths import WEB_DIR
-    web_dir = str(WEB_DIR)
-    app.mount("/web", StaticFiles(directory=web_dir), name="web")
-    
-    @app.get("/")
-    def read_root():
-        return RedirectResponse(url="/web/index.html")
-
-    # Start the FastAPI server in a background thread
-    server_thread = threading.Thread(target=run_server, daemon=True)
+    server_thread = threading.Thread(target=server.run, daemon=True)
     server_thread.start()
-    
-    print("\nTodos los servicios iniciados correctamente.")
-    time.sleep(2)  # Give the server a moment to start
-    
+
+    print(f"\n🚀 Servidor Kofu v{APP_VERSION} activo en: {url}")
+    time.sleep(1.2)
+
     if args.browser:
-        print("Iniciando en Navegador Web...")
-        webbrowser.open('http://127.0.0.1:8000/')
-        # Keep main thread alive
+        print("Abriendo interfaz en el navegador web predeterminado...")
+        webbrowser.open(f"{url}/web/index.html")
         try:
-            while True:
+            while server_thread.is_alive():
                 time.sleep(1)
         except KeyboardInterrupt:
-            pass
+            print("\nDeteniendo servidor Kofu...")
+            server.should_exit = True
     else:
-        print("Iniciando Interfaz Gráfica (PyWebView)...")
-        import webview
-        webview.create_window('Kofu AI', 'http://127.0.0.1:8000/', width=1280, height=800)
-        webview.start()
-    
-    print("Servidor detenido.")
+        try:
+            import webview
+            print("Iniciando ventana de aplicación (PyWebView)...")
+            webview.create_window(f'{APP_NAME} v{APP_VERSION}', f"{url}/web/index.html", width=1280, height=840)
+            webview.start()
+            server.should_exit = True
+        except (ImportError, Exception) as e:
+            print(f"Interfaz nativa no disponible ({e}). Abriendo en navegador...")
+            webbrowser.open(f"{url}/web/index.html")
+            try:
+                while server_thread.is_alive():
+                    time.sleep(1)
+            except KeyboardInterrupt:
+                server.should_exit = True
+
+    print("Kofu se ha detenido correctamente.")
+
 
 if __name__ == "__main__":
     multiprocessing.freeze_support()
